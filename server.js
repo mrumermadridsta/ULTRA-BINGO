@@ -124,7 +124,6 @@ app.post('/api/deposit', (req, res) => {
   res.json({ success: true, message: 'ዲፖዚት ጥያቄ ተልኳል። ከተረጋገጠ በኋላ ሂሳብዎ ይዘመናል', depositId });
 });
 
-// ✅ አስተዳዳሪ ቁልፉ 8084877485 ሆኖ ተቀምጧል
 app.post('/api/verify-deposit', (req, res) => {
   const { depositId, adminKey } = req.body;
   if (adminKey !== '8084877485') return res.json({ success: false, message: 'ያልተፈቀደ' });
@@ -139,6 +138,12 @@ app.post('/api/verify-deposit', (req, res) => {
   user.totalDeposited += pending.amount;
   user.depositHistory.push({ amount: pending.amount, reference: pending.reference, date: pending.date, status: 'completed' });
   usedReferences.add(pending.reference);
+  
+  if (user.bonusPending && pending.amount >= 100) {
+    user.balance += 10;
+    user.bonusPending = false;
+    user.bonusClaimed = true;
+  }
   
   users.set(pending.phone, user);
   pending.status = 'completed';
@@ -179,18 +184,19 @@ io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
   
   socket.on('createRoom', (data) => {
-    const { playerName, phone } = data;
+    const { playerName, phone, price, roomName } = data;
     const user = users.get(phone);
     if (!user) { socket.emit('errorMessage', { message: 'ተጠቃሚ አልተገኘም' }); return; }
     const roomId = `room_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
     const room = {
       id: roomId, players: new Map(), gameActive: false, calledNumbers: [],
-      numberPool: null, winner: null, hostId: socket.id, hostName: playerName, interval: null
+      numberPool: null, winner: null, hostId: socket.id, hostName: playerName,
+      price: price, roomName: roomName, interval: null, takenCards: []
     };
     room.players.set(socket.id, { id: socket.id, name: playerName, phone, card: null, marked: null, lines: 0 });
     rooms.set(roomId, room);
     socket.join(roomId);
-    socket.emit('roomCreated', { roomId, isHost: true });
+    socket.emit('roomCreated', { roomId, isHost: true, price, roomName, takenCards: [] });
     io.to(roomId).emit('playersList', Array.from(room.players.values()).map(p => ({ id: p.id, name: p.name })));
   });
   
@@ -201,14 +207,28 @@ io.on('connection', (socket) => {
     if (!room) { socket.emit('errorMessage', { message: 'ክፍል አልተገኘም' }); return; }
     if (!user) { socket.emit('errorMessage', { message: 'ተጠቃሚ አልተገኘም' }); return; }
     if (room.gameActive) { socket.emit('errorMessage', { message: 'ጨዋታ ተጀምሯል' }); return; }
-    const newCard = generateBingoCard();
-    const newMarked = Array(5).fill().map(() => Array(5).fill(false));
-    newMarked[2][2] = true;
-    room.players.set(socket.id, { id: socket.id, name: playerName, phone, card: newCard, marked: newMarked, lines: 0 });
+    room.players.set(socket.id, { id: socket.id, name: playerName, phone, card: null, marked: null, lines: 0 });
     socket.join(roomId);
-    socket.emit('roomJoined', { roomId, isHost: socket.id === room.hostId });
-    socket.emit('cardData', { card: newCard });
+    socket.emit('roomJoined', { roomId, isHost: false, price: room.price, roomName: room.roomName, takenCards: room.takenCards || [] });
     io.to(roomId).emit('playersList', Array.from(room.players.values()).map(p => ({ id: p.id, name: p.name })));
+  });
+  
+  socket.on('selectCard', (data) => {
+    const { roomId, cardNumber } = data;
+    const room = rooms.get(roomId);
+    if (!room) return;
+    const player = room.players.get(socket.id);
+    if (!player) return;
+    if (!room.takenCards) room.takenCards = [];
+    if (room.takenCards.includes(cardNumber)) {
+      socket.emit('errorMessage', { message: 'ይህ ካርድ ተወስዷል' });
+      return;
+    }
+    room.takenCards.push(cardNumber);
+    player.cardNumber = cardNumber;
+    room.players.set(socket.id, player);
+    socket.emit('cardConfirmed');
+    io.to(roomId).emit('playersList', Array.from(room.players.values()).map(p => ({ id: p.id, name: p.name, card: p.cardNumber })));
   });
   
   socket.on('startGame', (data) => {
