@@ -2,14 +2,13 @@
 <html lang="am">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>⚡ ULTRA BINGO - እውነተኛ ገንዘብ</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&family=Noto+Sans+Ethiopic:wght@400;700&display=swap" rel="stylesheet">
 <style>
-/* ===== ሁሉም CSS እንደበፊቱ ይቆያል (በመጠን መጨናነቅ ምክንያት አላስገባሁም - ቀደም ሲል ከላክከው ጋር አንድ ነው) ===== */
 :root{
   --bg:#05050f;--s1:#0d0d20;--s2:#13132a;--s3:#1a1a35;
   --gold:#FFD700;--gold2:#FF8C00;--green:#00FF88;--red:#FF2055;
@@ -134,7 +133,7 @@ body{color:var(--text);font-family:'Rajdhani','Noto Sans Ethiopic',sans-serif;fo
 .qa-ic{font-size:1.1rem;margin-bottom:2px;}
 .qa-lb{font-size:0.54rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
 
-/* ሌደርቦርድ - ባዶ ሆኖ ይጀምራል (እውነተኛ አሸናፊ ሲኖር ይሞላል) */
+/* ሌደርቦርድ - ባዶ ሆኖ ይጀምራል */
 .lb-pad{padding:0 15px;}
 .lb{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
 .lb-head{background:var(--s2);padding:8px 13px;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:2px;display:flex;justify-content:space-between;}
@@ -403,7 +402,7 @@ body{color:var(--text);font-family:'Rajdhani','Noto Sans Ethiopic',sans-serif;fo
   <button class="btn-main" style="max-width:340px" onclick="gotoPage('lobby')">🎮 ወደ ጨዋታ ይሂዱ!</button>
 </div>
 
-<!-- ════ LOBBY (ከውሸት መረጃ ነጻ - ባዶ ሆኖ ይጀምራል) ════ -->
+<!-- ════ LOBBY (ከውሸት መረጃ ነጻ) ════ -->
 <div class="page" id="lobby">
   <div class="lh">
     <div class="lh-top">
@@ -452,7 +451,7 @@ body{color:var(--text);font-family:'Rajdhani','Noto Sans Ethiopic',sans-serif;fo
   </div>
 </div>
 
-<!-- ════ CARD PICKER (እንደበፊቱ) ════ -->
+<!-- ════ CARD PICKER ════ -->
 <div class="page" id="picker">
   <div class="ph"><div class="ph-back" onclick="gotoPage('lobby')">←</div><div><div class="ph-t" id="pickerTitle">ካርቴላ ምረጡ</div><div class="ph-s">1-400 ካርቴላዎች ይገኛሉ</div></div></div>
   <div class="picker-info">
@@ -515,9 +514,22 @@ body{color:var(--text);font-family:'Rajdhani','Noto Sans Ethiopic',sans-serif;fo
   <div class="bnav"><div class="bn" onclick="gotoPage('lobby')"><div class="bn-ic">🏠</div><div class="bn-lb">ዋና</div></div><div class="bn act"><div class="bn-ic">💰</div><div class="bn-lb">ሂሳብ</div></div><div class="bn" onclick="showMod('inviteMod')"><div class="bn-ic">🔗</div><div class="bn-lb">ጋብዝ</div></div><div class="bn" onclick="showMod('supportMod')"><div class="bn-ic">🎧</div><div class="bn-lb">ድጋፍ</div></div></div>
 </div>
 
-<!-- MODALS (እንደበፊቱ) -->
+<!-- MODALS -->
 <div class="modal" id="payMod"><div class="modal-box"><div class="modal-h"></div><div class="modal-t" id="payModT">💳 ካርቴላ ይውሰዱ</div><div class="modal-s">የክፍያ ዘዴ ይምረጡ</div><div class="pm-list"><div class="pm sel" onclick="selPM(this)"><span class="pm-ic">📱</span>Telebirr</div><div class="pm" onclick="selPM(this)"><span class="pm-ic">🏦</span>CBE Birr</div><div class="pm" onclick="selPM(this)"><span class="pm-ic">💚</span>M-Pesa</div></div><div class="pay-amt" id="payAmt">10 ብር</div><button class="btn-full" onclick="confirmPay()">✅ አረጋግጡ እና ይቀላቀሉ</button><button class="btn-ol" onclick="closeMod('payMod')">ሰርዝ</button></div></div>
-<div class="modal" id="depositMod"><div class="modal-box"><div class="modal-h"></div><div class="modal-t">➕ Deposit</div><div class="modal-s">ወደ አካውንትዎ ገንዘብ ያስገቡ (ዝቅተኛ 100 ብር)</div><div class="inp-l">መጠን (ብር)</div><input class="inp" type="number" id="depositAmount" placeholder="ለምሳሌ፦ 100" min="100"><div class="inp-l">የቴሌብር ማጣቀሻ ቁጥር</div><input class="inp" type="text" id="depositRef" placeholder="ክፍያ ከፍለው የተሰጠውን ቁጥር ያስገቡ"><div class="pm-list"><div class="pm sel" onclick="selPM(this)"><span class="pm-ic">📱</span>Telebirr</div><div class="pm" onclick="selPM(this)"><span class="pm-ic">🏦</span>CBE Birr</div></div><button class="btn-full" onclick="requestDeposit()">📲 ጥያቄ አስገባ</button><button class="btn-ol" onclick="closeMod('depositMod')">ሰርዝ</button></div></div>
+<div class="modal" id="depositMod"><div class="modal-box"><div class="modal-h"></div><div class="modal-t">➕ Deposit</div><div class="modal-s">ወደ አካውንትዎ ገንዘብ ያስገቡ (ዝቅተኛ 100 ብር)</div>
+<div class="deposit-info" style="background:#1a1a36; border-radius:16px; padding:12px; margin:10px 0; text-align:center;">
+  <div>📱 ገንዘብ ወደዚህ ቁጥር ላኩ</div>
+  <div style="font-size:1.3rem; font-weight:bold; color:#FFD966;">0953025980</div>
+  <div>ስም: <strong>Seid</strong></div>
+  <div style="font-size:0.7rem;">ከ100 እስከ 10,000 ብር</div>
+</div>
+<div class="inp-l">መጠን (ብር)</div>
+<input class="inp" type="number" id="depositAmount" placeholder="ለምሳሌ፦ 100" min="100">
+<div class="inp-l">የቴሌብር ማጣቀሻ ቁጥር</div>
+<input class="inp" type="text" id="depositRef" placeholder="ክፍያ ከፍለው የተሰጠውን ቁጥር ያስገቡ">
+<div class="pm-list"><div class="pm sel" onclick="selPM(this)"><span class="pm-ic">📱</span>Telebirr</div><div class="pm" onclick="selPM(this)"><span class="pm-ic">🏦</span>CBE Birr</div></div>
+<button class="btn-full" onclick="requestDeposit()">📲 ጥያቄ አስገባ</button>
+<button class="btn-ol" onclick="closeMod('depositMod')">ሰርዝ</button></div></div>
 <div class="modal" id="withdrawMod"><div class="modal-box"><div class="modal-h"></div><div class="modal-t">💸 Withdraw</div><div class="modal-s">ዝቅተኛ 100 ብር (ፒን: 1234)</div><div class="inp-l">መጠን (ብር)</div><input class="inp" type="number" id="withdrawAmount" placeholder="ቢያንስ 100 ብር" min="100"><div class="inp-l">ስልክ ቁጥር</div><div class="inp-wrap"><input class="inp pfx" id="withdrawPhone" type="tel" placeholder="9XXXXXXXX"><span class="inp-pfx">+251</span></div><input class="inp" type="password" id="withdrawPin" placeholder="የደህንነት ፒን" value="1234"><button class="btn-full" onclick="requestWithdraw()">💸 አስገባ</button><button class="btn-ol" onclick="closeMod('withdrawMod')">ሰርዝ</button></div></div>
 <div class="modal" id="inviteMod"><div class="modal-box"><div class="modal-h"></div><div class="modal-t">🔗 ጓደኛ ጋብዙ</div><div class="modal-s">ለእያንዳንዱ ጓደኛ +5 ብር ቦነስ!</div><div style="background:var(--s2);border:1px solid var(--border);border-radius:11px;padding:13px;text-align:center;margin-bottom:11px;"><div style="font-size:0.58rem;color:var(--muted);margin-bottom:6px;">የጋበዛ ኮድዎ</div><div style="font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:700;color:var(--gold);letter-spacing:3px;" id="referralCodeDisplay">UB-A1B2C3</div></div><button class="btn-full" onclick="copyReferralCode()">📋 ሊንክ ቅዱ</button><button class="btn-ol" onclick="closeMod('inviteMod')">ዝጋ</button></div></div>
 <div class="modal" id="supportMod"><div class="modal-box"><div class="modal-h"></div><div class="modal-t">🎧 ድጋፍ / Support</div><div class="modal-s">እርዳታ ይፈልጋሉ?</div><div style="display:flex;flex-direction:column;gap:7px;margin-bottom:11px;"><div style="background:var(--s2);border:1px solid var(--border);border-radius:11px;padding:12px;display:flex;align-items:center;gap:9px;cursor:pointer;" onclick="toast2('Telegram ይከፈታል...')"><span style="font-size:1.2rem;">💬</span><div><div style="font-size:0.82rem;font-weight:600;">Telegram Support</div><div style="font-size:0.65rem;color:var(--muted);">@UltraBingoSupport</div></div></div><div style="background:var(--s2);border:1px solid var(--border);border-radius:11px;padding:12px;display:flex;align-items:center;gap:9px;cursor:pointer;" onclick="toast2('Guide ይከፈታል...')"><span style="font-size:1.2rem;">📖</span><div><div style="font-size:0.82rem;font-weight:600;">መመሪያ / Guide</div><div style="font-size:0.65rem;color:var(--muted);">እንዴት መጫወት እንደሚቻል</div></div></div></div><button class="btn-ol" onclick="closeMod('supportMod')">ዝጋ</button></div></div>
@@ -555,7 +567,7 @@ function speak(text){if(!voiceOn||!window.speechSynthesis)return;window.speechSy
 function toggleVoice(){voiceOn=!voiceOn;const b=document.getElementById('voiceBtn');b.textContent=voiceOn?'🔊 ድምፅ':'🔇 ድምፅ';b.className='voice-btn'+(voiceOn?' on':'');toast2(voiceOn?'🔊 ድምፅ ነቅቷል':'🔇 ድምፅ ጠፍቷል');}
 function toggleAuto(){autoMark=!autoMark;document.getElementById('autoTog').className='atog'+(autoMark?'':' off');document.getElementById('autoLbl').textContent=autoMark?'ራሱ ✅':'እጅ 🖐';toast2(autoMark?'✅ ራሱ ይምታል':'🖐 በእጅ ምቶ');}
 
-// ተጠቃሚን ማስታወስ (ሎጊን ሳያስገባ)
+// Save/Load user
 function saveUserToStorage(user){localStorage.setItem('ultraBingoUser',JSON.stringify(user));}
 function loadUserFromStorage(){const saved=localStorage.getItem('ultraBingoUser');if(saved){try{return JSON.parse(saved);}catch(e){return null;}}return null;}
 function clearUserStorage(){localStorage.removeItem('ultraBingoUser');}
@@ -581,7 +593,7 @@ async function submitRegistration(){
 }
 document.getElementById('submitRegBtn').onclick=submitRegistration;
 
-// Auto-login if user exists in storage
+// Auto-login
 function tryAutoLogin(){
   const saved=loadUserFromStorage();
   if(saved && saved.phone && saved.name){
@@ -606,7 +618,7 @@ function demoGame(){
   toast2('የሙከራ ሂሳብ 100 ብር');
 }
 
-// Socket connection and multiplayer logic
+// Socket connection
 function connectSocket(){
   socket=io();
   socket.on('roomCreated',(data)=>{currentRoomId=data.roomId;isHost=data.isHost;enterCardPicker();});
@@ -619,9 +631,7 @@ function connectSocket(){
   socket.on('errorMessage',(msg)=>toast2(msg));
 }
 
-function updateRoomPlayerCount(count){
-  document.getElementById('rPCount').textContent=count+'/100';
-}
+function updateRoomPlayerCount(count){document.getElementById('rPCount').textContent=count+'/100';}
 function openRoom(price,name){
   if(!currentUser){toast2('መጀመሪያ ይመዝገቡ');return;}
   if(currentUser.balance<price){toast2('በቂ ገንዘብ የለም');return;}
@@ -643,8 +653,31 @@ function getDailySeed(){const d=new Date();return d.getFullYear()*10000+(d.getMo
 function renderCardsGrid(filter){const g=document.getElementById('cardsGrid');g.innerHTML='';for(let i=1;i<=400;i++){if(filter&&!String(i).startsWith(filter))continue;const isSel=selectedCard===i;const el=document.createElement('div');el.className='cn'+(isSel?' sel':'');el.textContent=i;el.onclick=()=>selectCard(i);g.appendChild(el);}}
 function selectCard(n){selectedCard=n;document.getElementById('selectedCardNum').textContent='#'+n;document.getElementById('pickerJoinBtn').style.opacity='1';document.getElementById('pickerJoinBtn').style.pointerEvents='auto';renderCardsGrid(document.getElementById('searchCard').value||'');toast2('✅ ካርቴላ #'+n+' ተመርጧል!',1500);}
 function filterCards(val){renderCardsGrid(val||'');}
-function joinWithCard(){if(!selectedCard){toast2('ካርቴላ ይምረጡ');return;}document.getElementById('payModT').textContent='💳 ካርቴላ #'+selectedCard+' — '+pickerRoom.name;document.getElementById('payAmt').textContent=pickerRoom.price+' ብር';showMod('payMod');}
-function confirmPay(){closeMod('payMod');if(!socket)connectSocket();setTimeout(()=>{socket.emit('selectCard',{roomId:currentRoomId,cardNumber:selectedCard});},100);gotoPage('room');}
+function joinWithCard(){
+  if(!selectedCard){toast2('ካርቴላ ይምረጡ');return;}
+  // ✅ በቂ ገንዘብ ካለው ቀጥታ ያስገባ
+  if(currentUser && currentUser.balance >= pickerRoom.price){
+    currentUser.balance -= pickerRoom.price;
+    saveUserToStorage(currentUser);
+    updateBalanceUI();
+    if(!socket)connectSocket();
+    socket.emit('selectCard',{roomId:currentRoomId,cardNumber:selectedCard});
+    gotoPage('room');
+  } else {
+    // ❌ በቂ ገንዘብ ከሌለው ክፍያ ሞዳል አሳይ
+    document.getElementById('payModT').textContent='💳 ካርቴላ #'+selectedCard+' — '+pickerRoom.name;
+    document.getElementById('payAmt').textContent=pickerRoom.price+' ብር';
+    showMod('payMod');
+  }
+}
+function confirmPay(){
+  closeMod('payMod');
+  if(!socket)connectSocket();
+  setTimeout(()=>{
+    socket.emit('selectCard',{roomId:currentRoomId,cardNumber:selectedCard});
+  },100);
+  gotoPage('room');
+}
 function renderPGrid(players){
   const grid=document.getElementById('pgGrid');
   if(!grid) return;
@@ -697,7 +730,7 @@ function updateBalanceUI(){
   }
 }
 
-// Admin panel functions
+// Admin panel
 async function adminLogin(){
   const key=document.getElementById('adminKeyInput').value;
   if(key!=='8084877485'){toast2('የተሳሳተ ቁልፍ');return;}
@@ -743,11 +776,8 @@ document.getElementById('adminLoginBtn').onclick=adminLogin;
   }
 })();
 
-// Try auto-login on page load
-if(!tryAutoLogin()){
-  // stay on splash
-}
-// Telegram init
+// Start
+if(!tryAutoLogin()){}
 if(window.Telegram?.WebApp){Telegram.WebApp.ready();Telegram.WebApp.expand();}
 </script>
 </body>
