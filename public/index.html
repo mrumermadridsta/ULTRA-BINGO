@@ -588,12 +588,14 @@ function demoGame(){
 }
 function startLocalGame(){/* local bot game - simplified for demo */gotoPage('lobby');toast2('Demo mode: ከኮምፒውተር ጋር ይጫወቱ');}
 
-// Socket connection and multiplayer logic
+// Socket connection and multiplayer logic (with real players only)
 function connectSocket(){
   socket=io();
   socket.on('roomCreated',(data)=>{currentRoomId=data.roomId;isHost=data.isHost;enterCardPicker();});
   socket.on('roomJoined',(data)=>{currentRoomId=data.roomId;isHost=data.isHost;enterCardPicker();});
-  socket.on('playersList',(players)=>{renderPGrid(players);});
+  socket.on('playersList',(players)=>{
+    renderPGrid(players);  // only real players from server
+  });
   socket.on('gameStarted',()=>{startGameFromServer();});
   socket.on('numberCalled',(data)=>{handleNumberCalled(data);});
   socket.on('linesUpdate',(data)=>{linesCompleted=data.lines;updateScoreUI();});
@@ -609,7 +611,7 @@ function openRoom(price,name){
   socket.emit('createRoom',{playerName:currentUser.name,phone:currentUser.phone});
 }
 function enterCardPicker(){
-  generateTakenCards();
+  generateTakenCards(); // only for card selection display (not for room players)
   document.getElementById('pickerRoom').textContent=pickerRoom.name+' — '+pickerRoom.price+' ብር';
   document.getElementById('pickerPrize').textContent=Math.floor(pickerRoom.count*pickerRoom.price*0.8)+' ብር';
   document.getElementById('takenCount').textContent=pickerRoom.count+' ተወስደዋል';
@@ -624,7 +626,19 @@ function selectCard(n){selectedCard=n;document.getElementById('selectedCardNum')
 function filterCards(val){renderCardsGrid(val||'');}
 function joinWithCard(){if(!selectedCard){toast2('ካርቴላ ይምረጡ');return;}document.getElementById('payModT').textContent='💳 ካርቴላ #'+selectedCard+' — '+pickerRoom.name;document.getElementById('payAmt').textContent=pickerRoom.price+' ብር';showMod('payMod');}
 function confirmPay(){closeMod('payMod');if(!socket)connectSocket();setTimeout(()=>{socket.emit('selectCard',{roomId:currentRoomId,cardNumber:selectedCard});},100);gotoPage('room');}
-function renderPGrid(players){const grid=document.getElementById('pgGrid');grid.innerHTML='';players.slice(0,20).forEach(p=>{const slot=document.createElement('div');slot.className='pg-slot'+(p.id===socket.id?' me':' in');slot.innerHTML=`<span>${p.name.charAt(0)}</span><div class="pg-name">${p.name.split(' ')[0]}</div>`;grid.appendChild(slot);});}
+function renderPGrid(players){
+  const grid=document.getElementById('pgGrid');
+  if(!grid) return;
+  grid.innerHTML='';
+  if(players && players.length>0){
+    players.slice(0,20).forEach(p=>{
+      const slot=document.createElement('div');
+      slot.className='pg-slot'+(p.id===socket?.id?' me':' in');
+      slot.innerHTML=`<span>${p.name.charAt(0)}</span><div class="pg-name">${p.name.split(' ')[0]}</div>`;
+      grid.appendChild(slot);
+    });
+  }
+}
 function startGameFromServer(){gameActive=true;calledNumbers=[];bingoLinesSet.clear();cardMatrix=generateCardFromNumber(selectedCard);marked=Array(5).fill().map(()=>Array(5).fill(false));marked[2][2]=true;linesCompleted=0;updateScoreUI();renderCard();gotoPage('game');}
 function generateCardFromNumber(cardNum){const rng=seededRng(getDailySeed()*997+cardNum*31);const card=[];[[1,15],[16,30],[31,45],[46,60],[61,75]].forEach(([mn,mx])=>{const nums=[];const range=[];for(let i=mn;i<=mx;i++)range.push(i);while(nums.length<5){const idx=Math.floor(rng()*range.length);if(!nums.includes(range[idx]))nums.push(range[idx]);}card.push(nums);});return card;}
 function renderCard(){const g=document.getElementById('cardGrid');g.innerHTML='';for(let row=0;row<5;row++){for(let col=0;col<5;col++){const isFree=row===2&&col===2;const num=isFree?'FREE':cardMatrix[col][row];const isMarked=marked[row][col];const isWin=bingoLinesSet.has(`r${row}`)||bingoLinesSet.has(`c${col}`)||(row===col&&bingoLinesSet.has('d0'))||(row+col===4&&bingoLinesSet.has('d1'));const cell=document.createElement('div');cell.className='cell'+(isMarked?' marked':'')+(isFree?' free':'')+(isWin?' wl':'');cell.textContent=num;if(!isFree&&!autoMark)cell.onclick=()=>manualMark(row,col);g.appendChild(cell);}}}
