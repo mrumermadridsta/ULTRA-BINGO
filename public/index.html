@@ -1,729 +1,330 @@
 <!DOCTYPE html>
 <html lang="am">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>ULTRA BINGO - እውነተኛ ገንዘብ</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
-    body { background: #0a0a1a; color: #f0f0ff; font-family: 'Rajdhani', sans-serif; overflow: hidden; height: 100vh; }
-    #app { height: 100%; overflow-y: auto; overflow-x: hidden; padding-bottom: 70px; }
-    .page { display: none; padding: 18px 16px 80px; }
-    .page.active { display: block; }
-    .glass { background: #111128cc; backdrop-filter: blur(4px); border: 1px solid #2a2a4e; border-radius: 24px; padding: 16px; margin-bottom: 12px; }
-    .btn { width: 100%; background: linear-gradient(135deg, #FFD966, #FFAA33); border: none; border-radius: 40px; padding: 14px; font-weight: bold; font-family: 'Orbitron', monospace; font-size: 1rem; color: #1e1a00; cursor: pointer; margin-top: 8px; transition: 0.07s linear; }
-    .btn:active { transform: scale(0.97); }
-    .btn-outline { background: transparent; border: 1px solid #2a2a4e; color: #FFD966; }
-    .input { background: #1a1a36; border: 1px solid #2a2a4e; border-radius: 40px; padding: 12px 16px; width: 100%; color: white; margin: 8px 0; font-size: 1rem; outline: none; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .room-card { background: #111128; border-radius: 24px; padding: 16px; text-align: center; border-left: 6px solid; cursor: pointer; transition: 0.05s linear; }
-    .room-card:active { transform: scale(0.97); }
-    .room-card h3 { font-size: 1.8rem; font-family: 'Orbitron';}
-    .badge { background: #FFD96622; border-radius: 40px; padding: 4px 10px; font-size: 0.7rem; display: inline-block; }
-    .balance { font-family: 'Orbitron'; font-size: 1.6rem; color: #FFD966; }
-    .cards-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-height: 280px; overflow-y: auto; background: #0f0f20; border-radius: 20px; padding: 10px; }
-    .card-num { background: #1e1e3a; border: 1px solid #2a2a4e; border-radius: 12px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-family: 'Orbitron'; font-weight: bold; font-size: 0.7rem; cursor: pointer; transition: 0.05s; }
-    .card-num.taken { opacity: 0.3; cursor: not-allowed; background: #2a2a4e; }
-    .card-num.selected { background: #FFD966; color: #0a0a1a; border-color: #FFD966; transform: scale(1.02); }
-    .board { background: #0f0f20; border-radius: 24px; padding: 10px; }
-    .row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 6px; }
-    .cell { aspect-ratio: 1; background: #1a1a36; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-family: 'Orbitron'; font-weight: bold; font-size: 0.8rem; border: 1px solid #2a2a4e; cursor: pointer; transition: 0.05s; }
-    .cell.marked { background: linear-gradient(145deg, #FFD966, #FFAA33); color: #1e1a00; border-color: #FFD966; }
-    .cell.free { background: #2ecc7122; border-color: #2ecc71; color: #2ecc71; }
-    .cell.win { background: #2ecc71; color: #001a00; animation: pulse 0.6s infinite; }
-    @keyframes pulse { 0% { box-shadow: 0 0 0 0 #2ecc71; } 100% { box-shadow: 0 0 0 8px transparent; } }
-    .history { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; max-height: 70px; overflow-y: auto; }
-    .hist-item { background: #1e1e3a; border-radius: 20px; padding: 4px 10px; font-size: 0.7rem; font-weight: bold; }
-    .hist-item.latest { background: #FFD966; color: black; }
-    .players-list { display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0; }
-    .player-badge { background: #2a2a4e; border-radius: 40px; padding: 5px 15px; font-size: 0.8rem; }
-    .player-badge.me { background: #FFD966; color: black; }
-    .win-modal { position: fixed; inset: 0; background: #000000dd; backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; visibility: hidden; opacity: 0; transition: 0.2s; }
-    .win-modal.show { visibility: visible; opacity: 1; }
-    .win-card { background: #18183c; border-radius: 32px; padding: 24px; text-align: center; width: 85%; border: 2px solid #FFD966; }
-    .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #1e1e3a; padding: 8px 18px; border-radius: 40px; z-index: 999; font-size: 0.8rem; pointer-events: none; opacity: 0; transition: 0.15s; }
-    .tabbar { position: fixed; bottom: 0; left: 0; right: 0; background: #0f0f20; display: flex; justify-content: space-around; padding: 8px 0 20px; border-top: 1px solid #2a2a4e; z-index: 20; }
-    .tab { text-align: center; font-size: 0.7rem; cursor: pointer; opacity: 0.6; }
-    .tab.active { opacity: 1; color: #FFD966; }
-    .deposit-info { background: #1a1a36; border-radius: 16px; padding: 15px; margin: 10px 0; text-align: center; }
-    .deposit-info .phone { font-size: 1.3rem; font-weight: bold; color: #FFD966; letter-spacing: 1px; }
-    .progress-bar { height: 6px; background: #2a2a4e; border-radius: 4px; margin: 8px 0; }
-    .fill { height: 100%; background: #FFD966; border-radius: 4px; width: 100%; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ULTRA BINGO - እውነተኛ ገንዘብ</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-tap-highlight-color:transparent;}
+        body{background:#0a0a1a;color:#f0f0ff;font-family:'Rajdhani',sans-serif;overflow:hidden;height:100vh;}
+        #app{height:100%;overflow-y:auto;overflow-x:hidden;padding-bottom:70px;}
+        .page{display:none;padding:18px 16px 80px;}
+        .page.active{display:block;}
+        .glass{background:#111128cc;backdrop-filter:blur(4px);border:1px solid #2a2a4e;border-radius:24px;padding:16px;margin-bottom:12px;}
+        .btn{width:100%;background:linear-gradient(135deg,#FFD966,#FFAA33);border:none;border-radius:40px;padding:14px;font-weight:bold;font-family:'Orbitron',monospace;font-size:1rem;color:#1e1a00;cursor:pointer;margin-top:8px;}
+        .btn:active{transform:scale(0.97);}
+        .btn-outline{background:transparent;border:1px solid #2a2a4e;color:#FFD966;}
+        .input{background:#1a1a36;border:1px solid #2a2a4e;border-radius:40px;padding:12px 16px;width:100%;color:white;margin:8px 0;font-size:1rem;outline:none;}
+        .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+        .room-card{background:#111128;border-radius:24px;padding:16px;text-align:center;border-left:6px solid;cursor:pointer;}
+        .room-card h3{font-size:1.8rem;font-family:'Orbitron';}
+        .badge{background:#FFD96622;border-radius:40px;padding:4px 10px;font-size:0.7rem;display:inline-block;}
+        .balance{font-family:'Orbitron';font-size:1.6rem;color:#FFD966;}
+        .cards-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-height:280px;overflow-y:auto;background:#0f0f20;border-radius:20px;padding:10px;}
+        .card-num{background:#1e1e3a;border:1px solid #2a2a4e;border-radius:12px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-family:'Orbitron';font-weight:bold;font-size:0.7rem;cursor:pointer;}
+        .card-num.taken{opacity:0.3;cursor:not-allowed;background:#2a2a4e;}
+        .card-num.selected{background:#FFD966;color:#0a0a1a;border-color:#FFD966;}
+        .board{background:#0f0f20;border-radius:24px;padding:10px;}
+        .row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:6px;}
+        .cell{aspect-ratio:1;background:#1a1a36;border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron';font-weight:bold;font-size:0.8rem;border:1px solid #2a2a4e;cursor:pointer;}
+        .cell.marked{background:linear-gradient(145deg,#FFD966,#FFAA33);color:#1e1a00;border-color:#FFD966;}
+        .cell.free{background:#2ecc7122;border-color:#2ecc71;color:#2ecc71;}
+        .cell.win{background:#2ecc71;color:#001a00;animation:pulse 0.6s infinite;}
+        @keyframes pulse{0%{box-shadow:0 0 0 0 #2ecc71;}100%{box-shadow:0 0 0 8px transparent;}}
+        .history{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:70px;overflow-y:auto;}
+        .hist-item{background:#1e1e3a;border-radius:20px;padding:4px 10px;font-size:0.7rem;font-weight:bold;}
+        .hist-item.latest{background:#FFD966;color:black;}
+        .players-list{display:flex;flex-wrap:wrap;gap:10px;margin:15px 0;}
+        .player-badge{background:#2a2a4e;border-radius:40px;padding:5px 15px;font-size:0.8rem;}
+        .player-badge.me{background:#FFD966;color:black;}
+        .win-modal{position:fixed;inset:0;background:#000000dd;backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:1000;visibility:hidden;opacity:0;transition:0.2s;}
+        .win-modal.show{visibility:visible;opacity:1;}
+        .win-card{background:#18183c;border-radius:32px;padding:24px;text-align:center;width:85%;border:2px solid #FFD966;}
+        .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#1e1e3a;padding:8px 18px;border-radius:40px;z-index:999;font-size:0.8rem;pointer-events:none;opacity:0;transition:0.15s;}
+        .tabbar{position:fixed;bottom:0;left:0;right:0;background:#0f0f20;display:flex;justify-content:space-around;padding:8px 0 20px;border-top:1px solid #2a2a4e;z-index:20;}
+        .tab{text-align:center;font-size:0.7rem;cursor:pointer;opacity:0.6;}
+        .tab.active{opacity:1;color:#FFD966;}
+        .deposit-info{background:#1a1a36;border-radius:16px;padding:15px;margin:10px 0;text-align:center;}
+        .deposit-info .phone{font-size:1.3rem;font-weight:bold;color:#FFD966;}
+    </style>
 </head>
 <body>
 <div id="app">
-  <!-- የመግቢያ ገጽ (ምዝገባ) -->
-  <div class="page active" id="splashPage">
-    <div style="text-align:center; margin-top: 20px;">
-      <div style="font-size: 4rem;">🎯</div>
-      <h1 style="font-family: 'Orbitron';">ULTRA BINGO</h1>
-      <p>2 መስመር = ድል 💰</p>
+    <div class="page active" id="splashPage">
+        <div style="text-align:center;margin-top:20px;"><div style="font-size:4rem;">🎯</div><h1 style="font-family:'Orbitron';">ULTRA BINGO</h1><p>2 መስመር = ድል 💰</p></div>
+        <div class="glass"><div>✨ አዲስ ተጠቃሚ +10 ብር ቦነስ</div><div>🎲 በየጨዋታው ሙሉ ራንደም ቁጥሮች</div><div>🏆 80% የካርድ ገንዘብ ለአሸናፊ</div></div>
+        <input type="text" id="regName" class="input" placeholder="ሙሉ ስም">
+        <input type="tel" id="regPhone" class="input" placeholder="ስልክ ቁጥር 09xxxxxxxx">
+        <button class="btn" id="registerBtn">📱 ተመዝገብ + ቦነስ</button>
+        <button class="btn btn-outline" id="demoBtn">🎮 ያለ ምዝገባ ይሞክሩ</button>
     </div>
-    <div class="glass">
-      <div>✨ አዲስ ተጠቃሚ +10 ብር ቦነስ</div>
-      <div>🎲 በየጨዋታው ሙሉ ራንደም ቁጥሮች</div>
-      <div>🏆 80% የካርድ ገንዘብ ለአሸናፊ</div>
-    </div>
-    <input type="text" id="regName" class="input" placeholder="ሙሉ ስም">
-    <input type="tel" id="regPhone" class="input" placeholder="ስልክ ቁጥር 09xxxxxxxx">
-    <input type="text" id="regRefCode" class="input" placeholder="የማጣቀሻ ኮድ (ካለ)">
-    <button class="btn" id="registerBtn">📱 ተመዝገብ + ቦነስ</button>
-    <button class="btn btn-outline" id="demoBtn">🎮 ያለ ምዝገባ ይሞክሩ</button>
-  </div>
-
-  <!-- ዋና መተግበሪያ (ሎቢ + ሂሳብ) -->
-  <div id="mainApp" class="hidden">
-    <div class="tab">
-      <button id="tabLobbyBtn" class="active">🏠 ሎቢ</button>
-      <button id="tabWalletBtn">💰 ሂሳብ</button>
-      <button id="tabAdminBtn" class="btn-outline" style="display:none;">👑 አስተዳዳሪ</button>
-    </div>
-    
-    <!-- ሎቢ ገጽ -->
-    <div id="lobbyView">
-      <div class="glass">
-        <div class="balance-display" id="balanceDisplay">0 ብር</div>
-        <div id="userInfo"></div>
-      </div>
-      <div class="glass">
-        <h3>🎮 ክፍል ይምረጡ</h3>
-        <input type="text" id="roomIdInput" class="input" placeholder="የክፍል ኮድ (ለመቀላቀል)">
-        <button class="btn" id="createRoomBtn">✨ አዲስ ክፍል ፍጠሩ</button>
-        <button class="btn btn-outline" id="joinRoomBtn">🔗 ክፍል ይቀላቀሉ</button>
-      </div>
-    </div>
-    
-    <!-- ሂሳብ ገጽ (ዲፖዚት / ዊዝድሮ) -->
-    <div id="walletView" class="hidden">
-      <div class="glass">
-        <div class="balance-display" id="walletBalance">0 ብር</div>
-        <div id="refCodeDisplay" style="text-align:center; margin:10px 0;"></div>
-      </div>
-      <div class="glass">
-        <h3>📥 ዲፖዚት ማድረግ</h3>
-        <div class="deposit-info">
-          <div>📱 ገንዘብ ወደዚህ ቁጥር ላኩ</div>
-          <div class="phone">0953025980</div>
-          <div>ስም: <strong>Seid</strong></div>
-          <div style="font-size:0.7rem; margin-top:8px;">ከ100 እስከ 10,000 ብር</div>
+    <div class="page" id="lobbyPage">
+        <div style="display:flex;justify-content:space-between;"><h2>🏠 ሎቢ</h2><div><span style="color:#FFD966;" id="lobbyBal">0 ብር</span></div></div>
+        <div class="glass">🎁 ክፍል ምረጡ — 2 መስመር ሙሉ ማድረግ አለብዎት</div>
+        <div class="grid-2" style="margin-top:12px;">
+            <div class="room-card" data-price="5" data-name="ጀማሪ" style="border-left-color:#2ecc71;"><h3>5 ብር</h3><div>ጀማሪ</div><div class="badge">🔥 0 ተጫዋቾች</div></div>
+            <div class="room-card" data-price="10" data-name="ወርቅ" style="border-left-color:#FFD966;"><h3>10 ብር</h3><div>ወርቅ</div><div class="badge">⭐ 0 ተጫዋቾች</div></div>
+            <div class="room-card" data-price="50" data-name="VIP" style="border-left-color:#9b59b6;"><h3>50 ብር</h3><div>VIP</div><div class="badge">💎 0 ተጫዋቾች</div></div>
+            <div class="room-card" data-price="100" data-name="ቻምፒዮን" style="border-left-color:#e74c3c;"><h3>100 ብር</h3><div>ቻምፒዮን</div><div class="badge">🏆 0 ተጫዋቾች</div></div>
         </div>
-        <input type="number" id="depositAmount" class="input" placeholder="መጠን (ብር)">
-        <input type="text" id="depositRef" class="input" placeholder="የቴሌብር ማጣቀሻ ቁጥር">
-        <button class="btn" id="depositBtn">💰 ዲፖዚት ጥያቄ አስገባ</button>
-      </div>
-      <div class="glass">
-        <h3>📤 ገንዘብ ማውጣት (ዊዝድሮ)</h3>
-        <input type="number" id="withdrawAmount" class="input" placeholder="መጠን (ብር)">
-        <input type="tel" id="withdrawPhone" class="input" placeholder="የሚወጣበት ስልክ ቁጥር">
-        <input type="password" id="withdrawPin" class="input" placeholder="የደህንነት ፒን (1234)" value="1234">
-        <button class="btn" id="withdrawBtn">💸 ዊዝድሮ ጥያቄ አስገባ</button>
-      </div>
     </div>
-
-    <!-- አስተዳዳሪ ፓነል -->
-    <div id="adminView" class="hidden">
-      <div class="glass">
-        <h3>👑 ዲፖዚት ማረጋገጫ</h3>
-        <input type="password" id="adminKeyInput" class="input" placeholder="Admin Key">
-        <button class="btn" id="adminLoginBtn">🔓 ግባ</button>
-        <div id="pendingDepositsList" style="margin-top: 10px;"></div>
-      </div>
+    <div class="page" id="pickerPage">
+        <div class="glass" id="pickerInfo"></div>
+        <div class="cards-grid" id="cardsContainer"></div>
+        <div style="display:flex;justify-content:space-between;margin:12px 0;"><span>የተመረጠ ካርድ:</span><strong id="selectedCardNum">—</strong></div>
+        <button class="btn" id="confirmPick">💳 ካርድ ግዛ & ተቀላቀል</button>
     </div>
-  </div>
-
-  <!-- ክፍል ሎቢ (ካርድ ከመረጠ በኋላ) -->
-  <div id="roomLobbyScreen" class="hidden">
-    <div class="glass">
-      <h3>🏠 ክፍል ሎቢ - <span id="roomIdDisplay"></span></h3>
-      <div class="players-list" id="playersList"></div>
-      <div id="selectedCardInfo" style="margin: 10px 0; font-size: 0.9rem; background: #1a1a36; padding: 8px; border-radius: 20px; text-align: center;"></div>
-      <button class="btn" id="startGameBtn" style="display:none;">🎮 ጨዋታ ጀምር (አስተናጋጅ ብቻ)</button>
-      <button class="btn btn-outline" id="leaveLobbyBtn">🚪 ውጣ</button>
+    <div class="page" id="roomLobbyScreen">
+        <div class="glass"><h3>🏠 ክፍል ሎቢ - <span id="roomIdDisplay"></span></h3><div class="players-list" id="playersList"></div><button class="btn" id="startGameBtn" style="display:none;">🎮 ጨዋታ ጀምር</button><button class="btn btn-outline" id="leaveLobbyBtn">🚪 ውጣ</button></div>
     </div>
-  </div>
-
-  <!-- ጨዋታ ገጽ -->
-  <div id="gameScreen" class="hidden">
-    <div class="status-bar" style="display: flex; justify-content: space-between; background: #111128; border-radius: 40px; padding: 10px 16px; margin-bottom: 10px;">
-      <div>📊 ነጥብ <strong id="score">0</strong></div>
-      <div>🎯 ቢንጎ <strong id="bingoCount">0/2</strong></div>
-      <div>🔢 <span id="calledTotal">0</span>/75</div>
+    <div class="page" id="gamePage">
+        <div style="display:flex;justify-content:space-between;background:#111128;border-radius:40px;padding:10px 16px;margin-bottom:10px;"><div>📊 ነጥብ <strong id="score">0</strong></div><div>🎯 ቢንጎ <strong id="bingoCount">0/2</strong></div><div>🔢 <span id="calledTotal">0</span>/75</div></div>
+        <div class="glass"><div style="display:flex;justify-content:space-between;"><div style="font-size:2rem;" id="lastLetter">—</div><div style="font-size:2rem;font-weight:bold;" id="lastNum">—</div><button id="autoMarkBtn" class="btn" style="width:auto;padding:5px 15px;">✅ አውቶ</button><button id="voiceBtn" class="btn-outline" style="padding:6px 12px;">🔊</button></div><div class="history" id="historyDiv"></div></div>
+        <div id="bingoBoard" class="board"></div>
+        <div class="players-list" id="gamePlayersList"></div>
+        <button class="btn" id="claimBingoBtn">🏆 BINGO!</button>
+        <button class="btn btn-outline" id="leaveGameBtn">🚪 ውጣ</button>
     </div>
-    <div class="glass" style="padding: 12px;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div style="font-size: 2rem;" id="lastLetter">—</div>
-        <div style="font-size: 2rem; font-weight: bold;" id="lastNum">—</div>
-        <button id="autoMarkBtn" class="btn-outline" style="padding: 6px 12px;">✅ አውቶ</button>
-        <button id="voiceBtn" class="btn-outline" style="padding: 6px 12px;" onclick="toggleVoice()">🔊</button>
-      </div>
-      <div class="history" id="historyDiv"></div>
+    <div class="page" id="walletPage">
+        <div class="glass"><div>💰 ቀሪ ሂሳብ</div><div class="balance" id="walletBal">0.00 ብር</div><div class="badge">🎁 ቦነስ ተጨምሯል</div></div>
+        <div class="grid-2"><div class="room-card" id="depositSim" style="border-left-color:#2ecc71;"><h3>+ ዲፖዚት</h3><div>ቴሌብር 0953025980 (Seid)</div><div style="font-size:0.7rem;">ዝቅተኛ 100 ብር</div></div><div class="room-card" id="withdrawSim" style="border-left-color:#e74c3c;"><h3>- ዊዝድሮ</h3><div>ፒን ያስፈልጋል</div><div style="font-size:0.7rem;">ዝቅተኛ 100 ብር</div></div></div>
+        <div class="glass"><div>👑 አስተዳዳሪ ፓነል</div><input type="password" id="adminKeyInput" class="input" placeholder="Admin Key"><button class="btn" id="adminLoginBtn">🔓 ግባ</button><div id="pendingDepositsList"></div></div>
     </div>
-    <div id="bingoBoard" class="board"></div>
-    <div class="players-list" id="gamePlayersList"></div>
-    <button class="btn" id="claimBingoBtn">🏆 BINGO!</button>
-    <button class="btn btn-outline" id="leaveGameBtn">🚪 ውጣ</button>
-  </div>
-
-  <div class="tabbar">
-    <div class="tab" data-page="lobbyPage">🏠 ሎቢ</div>
-    <div class="tab" data-page="walletPage">💰 ሂሳብ</div>
-  </div>
+    <div class="tabbar"><div class="tab" data-page="lobbyPage">🏠 ሎቢ</div><div class="tab" data-page="walletPage">💰 ሂሳብ</div></div>
 </div>
-
-<div class="win-modal" id="winModal">
-  <div class="win-card">
-    <div style="font-size: 3rem;">🏆🎉</div>
-    <h2>ቢንጎ! አሸነፉ!</h2>
-    <div style="font-size: 2rem; color:#FFD966;" id="winPrizeAmount"></div>
-    <button class="btn" id="closeWinBtn">ዝጋ</button>
-  </div>
-</div>
+<div class="win-modal" id="winModal"><div class="win-card"><div style="font-size:3rem;">🏆🎉</div><h2>ቢንጎ! አሸነፉ!</h2><div style="font-size:2rem;color:#FFD966;" id="winPrizeAmount"></div><button class="btn" id="closeWinBtn">ዝጋ</button></div></div>
 <div id="toastMsg" class="toast"></div>
-
 <script>
-  let socket = null;
-  let currentUser = null;
-  let currentRoomId = null;
-  let isHost = false;
-  let gameActive = false;
-  let cardMatrix = [];
-  let marked = Array(5).fill().map(() => Array(5).fill(false));
-  let linesCompleted = 0;
-  let autoMark = true;
-  let voiceEnabled = true;
-  let calledNumbers = [];
-  let bingoLinesSet = new Set();
-  let selectedCardNumber = null;
-  let currentRoomPrice = 0;
-  let currentRoomName = "";
+    let socket = null;
+    let currentUser = null;
+    let selectedCard = null;
+    let currentRoomId = null;
+    let isHost = false;
+    let gameActive = false;
+    let cardMatrix = [];
+    let marked = [];
+    let linesCompleted = 0;
+    let calledNumbers = [];
+    let autoMark = true;
+    let voiceEnabled = true;
+    let bingoLinesSet = new Set();
+    let currentRoomPrice = 0;
+    let currentRoomName = "";
 
-  function toast(msg) {
-    const t = document.getElementById("toastMsg");
-    t.innerText = msg;
-    t.style.opacity = "1";
-    setTimeout(() => t.style.opacity = "0", 2000);
-  }
-
-  function updateBalanceUI() {
-    if (currentUser) {
-      const balStr = currentUser.balance.toFixed(2) + " ብር";
-      document.getElementById("balanceDisplay").innerText = balStr;
-      document.getElementById("walletBalance").innerText = balStr;
-      document.getElementById("userInfo").innerHTML = `👋 ${currentUser.name} | 🏆 ድሎች: ${currentUser.wins || 0}`;
-      document.getElementById("refCodeDisplay").innerHTML = `🔑 የማጣቀሻ ኮድ: <strong>${currentUser.refCode}</strong> <span style="cursor:pointer;" onclick="copyRefCode()">📋 ቅዳ</span>`;
+    function toast(msg) { let t = document.getElementById("toastMsg"); t.innerText = msg; t.style.opacity = "1"; setTimeout(() => t.style.opacity = "0", 2000); }
+    function gotoPage(id) { document.querySelectorAll(".page").forEach(p => p.classList.remove("active")); document.getElementById(id).classList.add("active"); }
+    function showMod(id) { document.getElementById(id).classList.add("show"); }
+    function closeMod(id) { document.getElementById(id).classList.remove("show"); }
+    function updateBalanceUI() { if (currentUser) { let bal = currentUser.balance.toFixed(2) + " ብር"; document.getElementById("lobbyBal").innerText = bal; document.getElementById("walletBal").innerText = bal; } }
+    function saveUser() { localStorage.setItem("ultraUser", JSON.stringify(currentUser)); }
+    function loadUser() { let u = localStorage.getItem("ultraUser"); if (u) { try { currentUser = JSON.parse(u); updateBalanceUI(); return true; } catch (e) { } } return false; }
+    function getLetter(n) { return n <= 15 ? "B" : n <= 30 ? "I" : n <= 45 ? "N" : n <= 60 ? "G" : "O"; }
+    function speak(txt) { if (!voiceEnabled || !window.speechSynthesis) return; window.speechSynthesis.cancel(); let u = new SpeechSynthesisUtterance(txt); u.lang = "am-ET"; u.rate = 0.85; window.speechSynthesis.speak(u); }
+    function toggleVoice() { voiceEnabled = !voiceEnabled; let b = document.getElementById("voiceBtn"); if (b) b.innerText = voiceEnabled ? "🔊" : "🔇"; toast(voiceEnabled ? "ድምፅ ነቅቷል" : "ድምፅ ጠፍቷል"); }
+    if (document.getElementById("voiceBtn")) document.getElementById("voiceBtn").onclick = toggleVoice;
+    function toggleAuto() { autoMark = !autoMark; let b = document.getElementById("autoMarkBtn"); if (b) b.innerText = autoMark ? "✅ አውቶ" : "✋ እጅ"; toast(autoMark ? "አውቶማቲክ ማርክ ነቅቷል" : "በእጅ ማርክ ማድረግ አለብዎት"); renderBoard(); }
+    if (document.getElementById("autoMarkBtn")) document.getElementById("autoMarkBtn").onclick = toggleAuto;
+    function generateCard(cardNum) {
+        let rng = (s) => () => { s = (s * 1664525 + 1013904223) >>> 0; return (s >>> 0) / 0xFFFFFFFF; };
+        let cardRng = rng(cardNum * 997 + new Date().getDate());
+        let card = [];
+        [[1, 15], [16, 30], [31, 45], [46, 60], [61, 75]].forEach(([min, max]) => {
+            let nums = [], cand = [];
+            for (let i = min; i <= max; i++) cand.push(i);
+            while (nums.length < 5) { let idx = Math.floor(cardRng() * cand.length); nums.push(cand[idx]); cand.splice(idx, 1); }
+            card.push(nums);
+        });
+        return card;
     }
-  }
-
-  function saveUserToStorage() {
-    localStorage.setItem("ultraBingoUser", JSON.stringify(currentUser));
-  }
-
-  function loadUserFromStorage() {
-    const saved = localStorage.getItem("ultraBingoUser");
-    if (saved) {
-      try {
-        currentUser = JSON.parse(saved);
-        updateBalanceUI();
-        return true;
-      } catch(e) {}
-    }
-    return false;
-  }
-
-  window.copyRefCode = () => {
-    if (currentUser) {
-      navigator.clipboard.writeText(currentUser.refCode);
-      toast("ኮድ ተቀድቷል");
-    }
-  };
-
-  function gotoPage(pageId) {
-    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-    document.getElementById(pageId).classList.add("active");
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    const targetTab = document.querySelector(`.tab[data-page="${pageId}"]`);
-    if (targetTab) targetTab.classList.add("active");
-  }
-
-  function showMod(id) { document.getElementById(id).classList.add("show"); }
-  function closeMod(id) { document.getElementById(id).classList.remove("show"); }
-
-  function getLetter(n) { return n <= 15 ? "B" : n <= 30 ? "I" : n <= 45 ? "N" : n <= 60 ? "G" : "O"; }
-
-  function speak(txt) {
-    if (!voiceEnabled || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(txt);
-    utter.lang = "am-ET";
-    utter.rate = 0.85;
-    window.speechSynthesis.speak(utter);
-  }
-
-  window.toggleVoice = function() {
-    voiceEnabled = !voiceEnabled;
-    const btn = document.getElementById("voiceBtn");
-    btn.innerText = voiceEnabled ? "🔊" : "🔇";
-    toast(voiceEnabled ? "ድምፅ ነቅቷል" : "ድምፅ ጠፍቷል");
-  };
-
-  // ካርድ ማመንጨት
-  function generateCardFromNumber(cardNum) {
-    const seed = cardNum * 997 + new Date().getDate();
-    let rng = (function(s) {
-      return function() { s = (s * 1664525 + 1013904223) >>> 0; return (s >>> 0) / 0xFFFFFFFF; };
-    })(seed);
-    const card = [];
-    [[1, 15], [16, 30], [31, 45], [46, 60], [61, 75]].forEach(([min, max]) => {
-      let nums = [];
-      let candidates = [];
-      for (let i = min; i <= max; i++) candidates.push(i);
-      while (nums.length < 5) {
-        let idx = Math.floor(rng() * candidates.length);
-        nums.push(candidates[idx]);
-        candidates.splice(idx, 1);
-      }
-      card.push(nums);
-    });
-    return card;
-  }
-
-  function renderBoard() {
-    const boardDiv = document.getElementById("bingoBoard");
-    if (!boardDiv) return;
-    boardDiv.innerHTML = "";
-    for (let row = 0; row < 5; row++) {
-      const rowDiv = document.createElement("div");
-      rowDiv.className = "row";
-      for (let col = 0; col < 5; col++) {
-        const isFree = (row === 2 && col === 2);
-        const num = isFree ? "FREE" : cardMatrix[col][row];
-        const isMarked = marked[row][col];
-        let isWinCell = false;
-        for (let l of bingoLinesSet) {
-          if (l === 'r' + row || l === 'c' + col || (l === 'd0' && row === col) || (l === 'd1' && row + col === 4)) {
-            isWinCell = true;
-          }
-        }
-        const cell = document.createElement("div");
-        cell.className = "cell";
-        if (isFree) cell.classList.add("free");
-        if (isMarked && !isFree) cell.classList.add("marked");
-        if (isWinCell && !isFree) cell.classList.add("win");
-        cell.innerText = num;
-        if (!isFree && !autoMark) {
-          cell.style.cursor = "pointer";
-          cell.onclick = (function(r, c) {
-            return function() {
-              if (calledNumbers.includes(cardMatrix[c][r])) {
-                if (socket) socket.emit('markNumber', { roomId: currentRoomId, row: r, col: c, number: cardMatrix[c][r] });
-              } else toast("ቁጥሩ ገና አልወጣም");
-            };
-          })(row, col);
-        }
-        rowDiv.appendChild(cell);
-      }
-      boardDiv.appendChild(rowDiv);
-    }
-  }
-
-  function updateHistory(letter, num) {
-    const histDiv = document.getElementById("historyDiv");
-    const item = document.createElement("div");
-    item.className = "hist-item";
-    item.innerText = `${letter}${num}`;
-    histDiv.prepend(item);
-    if (histDiv.children.length > 12) histDiv.removeChild(histDiv.lastChild);
-    if (histDiv.children[1]) histDiv.children[1].classList.remove("latest");
-    item.classList.add("latest");
-  }
-
-  function checkBingo() {
-    let newLine = false;
-    for (let i = 0; i < 5; i++) {
-      let rowComplete = true, colComplete = true;
-      for (let j = 0; j < 5; j++) {
-        if (!marked[i][j]) rowComplete = false;
-        if (!marked[j][i]) colComplete = false;
-      }
-      if (rowComplete && !bingoLinesSet.has('r' + i)) {
-        bingoLinesSet.add('r' + i);
-        newLine = true;
-      }
-      if (colComplete && !bingoLinesSet.has('c' + i)) {
-        bingoLinesSet.add('c' + i);
-        newLine = true;
-      }
-    }
-    let diag1 = true, diag2 = true;
-    for (let i = 0; i < 5; i++) {
-      if (!marked[i][i]) diag1 = false;
-      if (!marked[i][4 - i]) diag2 = false;
-    }
-    if (diag1 && !bingoLinesSet.has('d0')) {
-      bingoLinesSet.add('d0');
-      newLine = true;
-    }
-    if (diag2 && !bingoLinesSet.has('d1')) {
-      bingoLinesSet.add('d1');
-      newLine = true;
-    }
-    if (newLine) {
-      const total = bingoLinesSet.size;
-      document.getElementById("bingoCount").innerHTML = `${total}/2`;
-      document.getElementById("score").innerText = total * 500;
-      renderBoard();
-      if (total >= 2 && gameActive) {
-        gameActive = false;
-        if (socket) socket.emit('claimBingo', { roomId: currentRoomId });
-        document.getElementById("winPrizeAmount").innerHTML = "🎉 አሸነፉ!";
-        showMod("winModal");
-        speak("ቢንጎ! አሸነፉ!");
-        canvasConfetti({ particleCount: 200, spread: 70 });
-      }
-    }
-  }
-
-  // ኤፒአይ ጥሪዎች
-  async function register() {
-    const name = document.getElementById("regName").value.trim();
-    const phone = document.getElementById("regPhone").value.trim();
-    const refCode = document.getElementById("regRefCode").value.trim();
-    if (!name || phone.length < 9) { toast("ስም እና ስልክ ያስፈልጋል"); return; }
-    const res = await fetch('/api/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, phone, refCode })
-    });
-    const data = await res.json();
-    if (data.success) {
-      currentUser = data.user;
-      currentUser.phone = phone;
-      saveUserToStorage();
-      updateBalanceUI();
-      toast(data.message);
-      gotoPage("lobbyPage");
-    } else {
-      toast(data.message);
-    }
-  }
-
-  async function requestDeposit() {
-    if (!currentUser) { toast("መጀመሪያ ይመዝገቡ"); return; }
-    const amount = parseFloat(document.getElementById("depositAmount").value);
-    const reference = document.getElementById("depositRef").value.trim();
-    if (isNaN(amount) || amount < 100 || amount > 10000) { toast("ከ100 እስከ 10,000 ብር"); return; }
-    if (!reference) { toast("የቴሌብር ማጣቀሻ ቁጥር ያስገቡ"); return; }
-    const res = await fetch('/api/deposit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: currentUser.phone, amount, reference })
-    });
-    const data = await res.json();
-    if (data.success) { toast(data.message); closeMod('depositMod'); }
-    else toast(data.message);
-  }
-
-  async function requestWithdraw() {
-    if (!currentUser) { toast("መጀመሪያ ይመዝገቡ"); return; }
-    const amount = parseFloat(document.getElementById("withdrawAmount").value);
-    const phone = document.getElementById("withdrawPhone").value.trim();
-    const pin = document.getElementById("withdrawPin").value;
-    if (isNaN(amount) || amount < 100 || amount > 10000) { toast("ከ100 እስከ 10,000 ብር"); return; }
-    if (!phone) { toast("ስልክ ቁጥር ያስፈልጋል"); return; }
-    const res = await fetch('/api/withdraw', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: currentUser.phone, amount, pin, withdrawPhone: phone })
-    });
-    const data = await res.json();
-    if (data.success) {
-      currentUser.balance = data.newBalance;
-      saveUserToStorage();
-      updateBalanceUI();
-      toast(data.message);
-    } else toast(data.message);
-  }
-
-  function connectSocket() {
-    socket = io();
-    socket.on('roomCreated', (data) => {
-      currentRoomId = data.roomId;
-      isHost = data.isHost;
-      currentRoomPrice = data.price;
-      currentRoomName = data.roomName;
-      showCardPicker(data.takenCards || []);
-    });
-    socket.on('roomJoined', (data) => {
-      currentRoomId = data.roomId;
-      isHost = data.isHost;
-      currentRoomPrice = data.price;
-      currentRoomName = data.roomName;
-      showCardPicker(data.takenCards || []);
-    });
-    socket.on('playersList', (players) => {
-      const container = document.getElementById("playersList");
-      if (container) {
-        container.innerHTML = players.map(p => `<div class="player-badge ${p.id === socket.id ? 'me' : ''}">${p.name} ${p.card ? '(#' + p.card + ')' : ''}</div>`).join("");
-      }
-    });
-    socket.on('cardConfirmed', () => {
-      document.getElementById("selectedCardInfo").innerHTML = `🎴 የእርስዎ ካርድ ቁጥር: #${selectedCardNumber}`;
-      document.getElementById("startGameBtn").style.display = isHost ? "block" : "none";
-      document.getElementById("roomLobbyScreen").classList.remove("hidden");
-      document.getElementById("pickerPage").classList.add("hidden");
-    });
-    socket.on('gameStarted', () => {
-      gameActive = true;
-      calledNumbers = [];
-      bingoLinesSet.clear();
-      cardMatrix = generateCardFromNumber(selectedCardNumber);
-      marked = Array(5).fill().map(() => Array(5).fill(false));
-      marked[2][2] = true;
-      linesCompleted = 0;
-      document.getElementById("bingoCount").innerHTML = "0/2";
-      document.getElementById("score").innerText = "0";
-      document.getElementById("calledTotal").innerText = "0";
-      document.getElementById("historyDiv").innerHTML = "";
-      renderBoard();
-      gotoPage("gameScreen");
-      toast("ጨዋታ ተጀምሯል! እንኳን ደስ አለዎት!");
-    });
-    socket.on('numberCalled', (data) => {
-      if (!gameActive) return;
-      calledNumbers.push(data.number);
-      document.getElementById("lastLetter").innerText = data.letter;
-      document.getElementById("lastNum").innerText = data.number;
-      speak(data.letter + " " + data.number);
-      updateHistory(data.letter, data.number);
-      document.getElementById("calledTotal").innerText = data.calledCount;
-      if (autoMark) {
-        let hit = false;
-        for (let col = 0; col < 5; col++) {
-          for (let row = 0; row < 5; row++) {
-            if (cardMatrix[col][row] === data.number && !marked[row][col]) {
-              marked[row][col] = true;
-              hit = true;
+    function renderBoard() {
+        let bd = document.getElementById("bingoBoard");
+        if (!bd) return;
+        bd.innerHTML = "";
+        for (let row = 0; row < 5; row++) {
+            let rd = document.createElement("div"); rd.className = "row";
+            for (let col = 0; col < 5; col++) {
+                let isFree = (row === 2 && col === 2);
+                let num = isFree ? "FREE" : cardMatrix[col][row];
+                let isMarked = marked[row] && marked[row][col];
+                let isWin = false;
+                for (let l of bingoLinesSet) { if (l === 'r' + row || l === 'c' + col || (l === 'd0' && row === col) || (l === 'd1' && row + col === 4)) isWin = true; }
+                let cell = document.createElement("div"); cell.className = "cell" + (isMarked ? " marked" : "") + (isFree ? " free" : "") + (isWin ? " win" : "");
+                cell.innerText = num;
+                if (!isFree && !autoMark) { cell.onclick = () => { if (calledNumbers.includes(num)) socket.emit('markNumber', { roomId: currentRoomId, row, col, number: num }); else toast("ቁጥሩ ገና አልወጣም"); }; }
+                rd.appendChild(cell);
             }
-          }
+            bd.appendChild(rd);
         }
-        if (hit) toast(`✅ ${data.letter}${data.number} በካርድህ ላይ!`);
-        renderBoard();
-        checkBingo();
-      }
-    });
-    socket.on('linesUpdate', (data) => {
-      linesCompleted = data.lines;
-      document.getElementById("bingoCount").innerHTML = `${linesCompleted}/2`;
-      document.getElementById("score").innerText = linesCompleted * 500;
-      if (linesCompleted >= 2 && gameActive) {
-        toast("2 መስመር ሞልቷል! ቢንጎ ተጫኑ!");
-      }
-    });
-    socket.on('gameEnded', (data) => {
-      gameActive = false;
-      if (data.winner === currentUser?.name) {
-        currentUser.wins = (currentUser.wins || 0) + 1;
-        saveUserToStorage();
-        updateBalanceUI();
-        toast("🏆 አሸንፈዋል! እንኳን ደስ አለዎት!");
-        canvasConfetti({ particleCount: 200, spread: 70 });
-      } else if (data.winner) {
-        toast(`${data.winner} አሸንፈዋል! በሚቀጥለው ጊዜ ይሞክሩ`);
-      } else {
-        toast("ጨዋታው አልቋል!");
-      }
-      setTimeout(() => { gotoPage("lobbyPage"); }, 3000);
-    });
-    socket.on('errorMessage', (msg) => toast(msg));
-  }
-
-  function showCardPicker(takenCards) {
-    selectedCardNumber = null;
-    document.getElementById("pickerInfo").innerHTML = `<strong>${currentRoomName}</strong> · ${currentRoomPrice} ብር<br>ተወስደው ያሉ ካርዶች: ${takenCards.length}`;
-    const container = document.getElementById("cardsContainer");
-    container.innerHTML = "";
-    for (let i = 1; i <= 400; i++) {
-      const isTaken = takenCards.includes(i);
-      const div = document.createElement("div");
-      div.className = `card-num ${isTaken ? "taken" : ""}`;
-      div.innerText = i;
-      if (!isTaken) {
-        div.onclick = () => {
-          selectedCardNumber = i;
-          document.getElementById("selectedCardNum").innerText = "#" + i;
-          document.querySelectorAll(".card-num").forEach(c => c.classList.remove("selected"));
-          div.classList.add("selected");
-        };
-      }
-      container.appendChild(div);
     }
-    document.getElementById("pickerPage").classList.remove("hidden");
-    document.getElementById("roomLobbyScreen").classList.add("hidden");
-    gotoPage("pickerPage");
-  }
-
-  function confirmPick() {
-    if (!selectedCardNumber) { toast("ካርድ ቁጥር ይምረጡ"); return; }
-    if (currentUser.balance >= currentRoomPrice) {
-      currentUser.balance -= currentRoomPrice;
-      saveUserToStorage();
-      updateBalanceUI();
-      if (socket) socket.emit('selectCard', { roomId: currentRoomId, cardNumber: selectedCardNumber });
-    } else {
-      toast("በቂ ገንዘብ የለዎትም። እባክዎ ዲፖዚት ያድርጉ");
+    function updateHistory(letter, num) {
+        let h = document.getElementById("historyDiv");
+        let item = document.createElement("div"); item.className = "hist-item"; item.innerText = letter + num;
+        h.prepend(item); if (h.children.length > 12) h.removeChild(h.lastChild); if (h.children[1]) h.children[1].classList.remove("latest");
+        item.classList.add("latest");
     }
-  }
-
-  function demoGame() {
-    currentUser = { name: "Demo", phone: "demo_" + Date.now(), balance: 100, refCode: "DEMO", wins: 0 };
-    saveUserToStorage();
-    updateBalanceUI();
-    toast("የሙከራ ሂሳብ 100 ብር");
-    gotoPage("lobbyPage");
-  }
-
-  // ክስተቶች
-  document.getElementById("registerBtn").onclick = register;
-  document.getElementById("demoBtn").onclick = demoGame;
-  document.getElementById("depositBtn").onclick = requestDeposit;
-  document.getElementById("withdrawBtn").onclick = requestWithdraw;
-  document.getElementById("confirmPick").onclick = confirmPick;
-  document.getElementById("startGameBtn").onclick = () => { if (isHost && currentRoomId && socket) socket.emit('startGame', { roomId: currentRoomId }); };
-  document.getElementById("claimBingoBtn").onclick = () => { if (gameActive && socket) checkBingo(); };
-  document.getElementById("autoMarkBtn").onclick = () => {
-    autoMark = !autoMark;
-    document.getElementById("autoMarkBtn").innerText = autoMark ? "✅ አውቶ" : "✋ እጅ";
-    toast(autoMark ? "አውቶማቲክ ማርክ ነቅቷል" : "በእጅ ማርክ ማድረግ አለብዎት");
-    renderBoard();
-  };
-  document.getElementById("leaveLobbyBtn").onclick = () => { if (socket) socket.emit('leaveRoom', { roomId: currentRoomId }); window.location.reload(); };
-  document.getElementById("leaveGameBtn").onclick = () => { if (socket) socket.emit('leaveRoom', { roomId: currentRoomId }); window.location.reload(); };
-  document.getElementById("closeWinBtn").onclick = () => { closeMod("winModal"); gotoPage("lobbyPage"); };
-  
-  // ክፍል መፍጠር / መቀላቀል
-  document.getElementById("createRoomBtn").onclick = () => {
-    if (!currentUser) { toast("መጀመሪያ ይመዝገቡ"); return; }
-    if (!socket) connectSocket();
-    const price = 10;
-    const name = "ወርቅ ቢንጎ";
-    if (currentUser.balance < price) { toast("በቂ ገንዘብ የለዎትም"); return; }
-    socket.emit('createRoom', { playerName: currentUser.name, phone: currentUser.phone, price: price, roomName: name });
-    document.getElementById("mainApp").classList.add("hidden");
-  };
-  
-  document.getElementById("joinRoomBtn").onclick = () => {
-    const roomId = document.getElementById("roomIdInput").value.trim();
-    if (!roomId) { toast("እባክዎ የክፍል ኮድ ያስገቡ"); return; }
-    if (!currentUser) { toast("መጀመሪያ ይመዝገቡ"); return; }
-    if (!socket) connectSocket();
-    socket.emit('joinRoom', { roomId: roomId, playerName: currentUser.name, phone: currentUser.phone });
-    document.getElementById("mainApp").classList.add("hidden");
-  };
-
-  // አስተዳዳሪ ፓነል
-  document.getElementById("adminLoginBtn").onclick = async () => {
-    const key = document.getElementById("adminKeyInput").value;
-    if (key !== '8084877485') { toast("የተሳሳተ ቁልፍ"); return; }
-    const res = await fetch('/api/pending-deposits?adminKey=8084877485');
-    const data = await res.json();
-    if (data.success) {
-      const container = document.getElementById("pendingDepositsList");
-      container.innerHTML = "<h4>በመጠባበቅ ላይ ያሉ ዲፖዚቶች:</h4>";
-      data.deposits.forEach(dep => {
-        const div = document.createElement("div");
-        div.className = "glass";
-        div.style.padding = "10px";
-        div.style.margin = "10px 0";
-        div.innerHTML = `<div>📞 ${dep.phone}</div><div>💰 ${dep.amount} ብር</div><div>🔢 ${dep.reference}</div><button class="btn" onclick='verifyDeposit("${dep.id}")'>✅ አረጋግጥ</button>`;
-        container.appendChild(div);
-      });
-    } else toast("አልተገኙም");
-  };
-  
-  window.verifyDeposit = async (depositId) => {
-    const res = await fetch('/api/verify-deposit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ depositId, adminKey: '8084877485' })
-    });
-    const data = await res.json();
-    if (data.success) {
-      toast(data.message);
-      if (currentUser && currentUser.phone === data.phone) {
-        currentUser.balance = data.newBalance;
-        saveUserToStorage();
-        updateBalanceUI();
-      }
-      document.getElementById("adminLoginBtn").click();
-    } else toast(data.message);
-  };
-
-  // ታብ መቀየሪያ
-  document.getElementById("tabLobbyBtn").onclick = () => {
-    document.getElementById("lobbyView").classList.remove("hidden");
-    document.getElementById("walletView").classList.add("hidden");
-    document.getElementById("adminView").classList.add("hidden");
-    document.getElementById("tabLobbyBtn").classList.add("active");
-    document.getElementById("tabWalletBtn").classList.remove("active");
-    document.getElementById("tabAdminBtn").classList.remove("active");
-  };
-  document.getElementById("tabWalletBtn").onclick = () => {
-    document.getElementById("lobbyView").classList.add("hidden");
-    document.getElementById("walletView").classList.remove("hidden");
-    document.getElementById("adminView").classList.add("hidden");
-    document.getElementById("tabLobbyBtn").classList.remove("active");
-    document.getElementById("tabWalletBtn").classList.add("active");
-    document.getElementById("tabAdminBtn").classList.remove("active");
-  };
-  document.getElementById("tabAdminBtn").onclick = () => {
-    document.getElementById("lobbyView").classList.add("hidden");
-    document.getElementById("walletView").classList.add("hidden");
-    document.getElementById("adminView").classList.remove("hidden");
-    document.getElementById("tabLobbyBtn").classList.remove("active");
-    document.getElementById("tabWalletBtn").classList.remove("active");
-    document.getElementById("tabAdminBtn").classList.add("active");
-  };
-
-  // ክፍል ካርዶች (ቀለል ያሉ)
-  document.querySelectorAll(".room-card").forEach(card => {
-    card.onclick = () => {
-      const price = parseInt(card.getAttribute("data-price"));
-      const name = card.getAttribute("data-name");
-      if (!currentUser) { toast("መጀመሪያ ይመዝገቡ"); return; }
-      if (currentUser.balance < price) { toast("በቂ ገንዘብ የለዎትም"); return; }
-      if (!socket) connectSocket();
-      socket.emit('createRoom', { playerName: currentUser.name, phone: currentUser.phone, price: price, roomName: name });
-      document.getElementById("mainApp").classList.add("hidden");
+    function checkBingo() {
+        let newLine = false;
+        for (let i = 0; i < 5; i++) {
+            let rowComplete = true, colComplete = true;
+            for (let j = 0; j < 5; j++) {
+                if (!marked[i][j]) rowComplete = false;
+                if (!marked[j][i]) colComplete = false;
+            }
+            if (rowComplete && !bingoLinesSet.has('r' + i)) { bingoLinesSet.add('r' + i); newLine = true; }
+            if (colComplete && !bingoLinesSet.has('c' + i)) { bingoLinesSet.add('c' + i); newLine = true; }
+        }
+        let diag1 = true, diag2 = true;
+        for (let i = 0; i < 5; i++) {
+            if (!marked[i][i]) diag1 = false;
+            if (!marked[i][4 - i]) diag2 = false;
+        }
+        if (diag1 && !bingoLinesSet.has('d0')) { bingoLinesSet.add('d0'); newLine = true; }
+        if (diag2 && !bingoLinesSet.has('d1')) { bingoLinesSet.add('d1'); newLine = true; }
+        if (newLine) {
+            let total = bingoLinesSet.size;
+            document.getElementById("bingoCount").innerHTML = total + "/2";
+            document.getElementById("score").innerText = total * 500;
+            renderBoard();
+            if (total >= 2 && gameActive) {
+                gameActive = false;
+                if (socket) socket.emit('claimBingo', { roomId: currentRoomId });
+                document.getElementById("winPrizeAmount").innerHTML = "🎉 አሸነፉ!";
+                showMod("winModal");
+                speak("ቢንጎ! አሸነፉ!");
+                canvasConfetti({ particleCount: 200, spread: 70 });
+            }
+        }
+    }
+    async function register() {
+        let name = document.getElementById("regName").value.trim();
+        let phone = document.getElementById("regPhone").value.trim();
+        if (!name || phone.length < 9) { toast("ስም እና ስልክ ያስፈልጋል"); return; }
+        let res = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, phone, refCode: "" }) });
+        let data = await res.json();
+        if (data.success) { currentUser = data.user; currentUser.phone = phone; saveUser(); updateBalanceUI(); toast(data.message); gotoPage("lobbyPage"); }
+        else toast(data.message);
+    }
+    function demoGame() { currentUser = { name: "Demo", phone: "demo_" + Date.now(), balance: 100, refCode: "DEMO", wins: 0 }; saveUser(); updateBalanceUI(); toast("የሙከራ ሂሳብ 100 ብር"); gotoPage("lobbyPage"); }
+    document.getElementById("registerBtn").onclick = register;
+    document.getElementById("demoBtn").onclick = demoGame;
+    function connectSocket() {
+        socket = io();
+        socket.on('roomCreated', (data) => { currentRoomId = data.roomId; isHost = data.isHost; currentRoomPrice = data.price; currentRoomName = data.roomName; showCardPicker(data.takenCards || []); });
+        socket.on('roomJoined', (data) => { currentRoomId = data.roomId; isHost = data.isHost; currentRoomPrice = data.price; currentRoomName = data.roomName; showCardPicker(data.takenCards || []); });
+        socket.on('playersList', (players) => { let plist = document.getElementById("playersList"); if (plist) plist.innerHTML = players.map(p => `<div class="player-badge ${p.id === socket.id ? 'me' : ''}">${p.name}</div>`).join(""); let glist = document.getElementById("gamePlayersList"); if (glist) glist.innerHTML = players.map(p => `<div class="player-badge ${p.id === socket.id ? 'me' : ''}">${p.name}</div>`).join(""); });
+        socket.on('cardConfirmed', () => { document.getElementById("startGameBtn").style.display = isHost ? "block" : "none"; document.getElementById("roomLobbyScreen").classList.remove("hidden"); document.getElementById("pickerPage").classList.add("hidden"); });
+        socket.on('gameStarted', () => { gameActive = true; calledNumbers = []; bingoLinesSet.clear(); cardMatrix = generateCard(selectedCard); marked = Array(5).fill().map(() => Array(5).fill(false)); marked[2][2] = true; linesCompleted = 0; document.getElementById("bingoCount").innerHTML = "0/2"; document.getElementById("score").innerText = "0"; document.getElementById("calledTotal").innerText = "0"; document.getElementById("historyDiv").innerHTML = ""; renderBoard(); gotoPage("gamePage"); });
+        socket.on('numberCalled', (data) => { if (!gameActive) return; calledNumbers.push(data.number); document.getElementById("lastLetter").innerText = data.letter; document.getElementById("lastNum").innerText = data.number; speak(data.letter + " " + data.number); updateHistory(data.letter, data.number); document.getElementById("calledTotal").innerText = data.calledCount; if (autoMark) { let hit = false; for (let col = 0; col < 5; col++) for (let row = 0; row < 5; row++) if (cardMatrix[col][row] === data.number && !marked[row][col]) { marked[row][col] = true; hit = true; } if (hit) toast("✅ " + data.letter + data.number + " በካርድህ ላይ!"); renderBoard(); checkBingo(); } });
+        socket.on('linesUpdate', (data) => { linesCompleted = data.lines; document.getElementById("bingoCount").innerHTML = linesCompleted + "/2"; document.getElementById("score").innerText = linesCompleted * 500; if (linesCompleted >= 2 && gameActive) toast("2 መስመር ሞልቷል! ቢንጎ ተጫኑ!"); });
+        socket.on('gameEnded', (data) => { gameActive = false; if (data.winner === currentUser?.name) { currentUser.wins = (currentUser.wins || 0) + 1; saveUser(); updateBalanceUI(); toast("🏆 አሸንፈዋል! እንኳን ደስ አለዎት!"); canvasConfetti({ particleCount: 200, spread: 70 }); } else if (data.winner) toast(data.winner + " አሸንፈዋል!"); else toast("ጨዋታው አልቋል!"); setTimeout(() => gotoPage("lobbyPage"), 3000); });
+        socket.on('errorMessage', (msg) => toast(msg));
+    }
+    function showCardPicker(taken) {
+        selectedCard = null;
+        document.getElementById("pickerInfo").innerHTML = `<strong>${currentRoomName}</strong> · ${currentRoomPrice} ብር<br>ተወስደው ያሉ ካርዶች: ${taken.length}`;
+        let container = document.getElementById("cardsContainer");
+        container.innerHTML = "";
+        for (let i = 1; i <= 400; i++) {
+            let takenFlag = taken.includes(i);
+            let div = document.createElement("div");
+            div.className = "card-num" + (takenFlag ? " taken" : "");
+            div.innerText = i;
+            if (!takenFlag) {
+                div.onclick = (function(num) {
+                    return function() {
+                        selectedCard = num;
+                        document.getElementById("selectedCardNum").innerText = "#" + num;
+                        document.querySelectorAll(".card-num").forEach(c => c.classList.remove("selected"));
+                        div.classList.add("selected");
+                    };
+                })(i);
+            }
+            container.appendChild(div);
+        }
+        gotoPage("pickerPage");
+    }
+    function confirmPick() {
+        if (!selectedCard) { toast("ካርድ ይምረጡ"); return; }
+        if (currentUser.balance >= currentRoomPrice) {
+            currentUser.balance -= currentRoomPrice;
+            saveUser();
+            updateBalanceUI();
+            if (socket) socket.emit('selectCard', { roomId: currentRoomId, cardNumber: selectedCard });
+        } else { toast("በቂ ገንዘብ የለዎትም። እባክዎ ዲፖዚት ያድርጉ"); }
+    }
+    document.getElementById("confirmPick").onclick = confirmPick;
+    document.getElementById("startGameBtn").onclick = () => { if (isHost && currentRoomId && socket) socket.emit('startGame', { roomId: currentRoomId }); };
+    document.getElementById("claimBingoBtn").onclick = () => { if (gameActive) checkBingo(); };
+    document.getElementById("leaveLobbyBtn").onclick = () => { if (socket) socket.emit('leaveRoom', { roomId: currentRoomId }); window.location.reload(); };
+    document.getElementById("leaveGameBtn").onclick = () => { if (socket) socket.emit('leaveRoom', { roomId: currentRoomId }); window.location.reload(); };
+    document.getElementById("closeWinBtn").onclick = () => { closeMod("winModal"); gotoPage("lobbyPage"); };
+    function openRoom(price, name) {
+        if (!currentUser) { toast("መጀመሪያ ይመዝገቡ"); return; }
+        if (currentUser.balance < price) { toast("በቂ ገንዘብ የለዎትም"); return; }
+        if (!socket) connectSocket();
+        socket.emit('createRoom', { playerName: currentUser.name, phone: currentUser.phone, price: price, roomName: name });
+    }
+    document.querySelectorAll(".room-card").forEach(card => { card.onclick = () => { let price = parseInt(card.getAttribute("data-price")); let name = card.getAttribute("data-name"); openRoom(price, name); }; });
+    document.querySelectorAll(".tab").forEach(tab => { tab.onclick = () => gotoPage(tab.getAttribute("data-page")); });
+    async function requestDeposit() {
+        let amt = parseFloat(prompt("ዲፖዚት መጠን (ብር) ከ100 እስከ 10,000\nቴሌብር 0953025980 (Seid)", "100"));
+        if (amt && !isNaN(amt)) {
+            let val = parseFloat(amt);
+            if (val >= 100 && val <= 10000) {
+                let res = await fetch('/api/deposit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: currentUser.phone, amount: val, reference: "MANUAL_" + Date.now() }) });
+                let data = await res.json();
+                if (data.success) { currentUser.balance = data.newBalance; saveUser(); updateBalanceUI(); toast("+" + val + " ብር ተጨምሯል"); } else toast(data.message);
+            } else toast("ከ100-10,000 ብር ብቻ");
+        }
+    }
+    document.getElementById("depositSim").onclick = requestDeposit;
+    async function requestWithdraw() {
+        let amt = parseFloat(prompt("ማውጣት የሚፈልጉት መጠን (ብር)", "100"));
+        if (amt && !isNaN(amt)) {
+            let val = parseFloat(amt);
+            if (val >= 100 && val <= 10000) {
+                if (currentUser.balance >= val) { currentUser.balance -= val; saveUser(); updateBalanceUI(); toast("-" + val + " ብር ወጥቷል"); } else toast("በቂ ገንዘብ የለም");
+            } else toast("ከ100-10,000 ብር ብቻ");
+        }
+    }
+    document.getElementById("withdrawSim").onclick = requestWithdraw;
+    async function adminLogin() {
+        let key = document.getElementById("adminKeyInput").value;
+        if (key !== "8084877485") { toast("የተሳሳተ ቁልፍ"); return; }
+        let res = await fetch('/api/pending-deposits?adminKey=8084877485');
+        let data = await res.json();
+        if (data.success) {
+            let cont = document.getElementById("pendingDepositsList");
+            cont.innerHTML = "<h4>በመጠባበቅ ላይ ያሉ ዲፖዚቶች:</h4>";
+            data.deposits.forEach(d => {
+                let div = document.createElement("div");
+                div.className = "glass";
+                div.style.padding = "10px";
+                div.style.margin = "10px 0";
+                div.innerHTML = `<div>📞 ${d.phone}</div><div>💰 ${d.amount} ብር</div><div>🔢 ${d.reference}</div><button class="btn" onclick='verifyDeposit("${d.id}")'>✅ አረጋግጥ</button>`;
+                cont.appendChild(div);
+            });
+        } else toast("አልተገኙም");
+    }
+    document.getElementById("adminLoginBtn").onclick = adminLogin;
+    window.verifyDeposit = async function (id) {
+        let res = await fetch('/api/verify-deposit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ depositId: id, adminKey: "8084877485" }) });
+        let data = await res.json();
+        if (data.success) {
+            toast(data.message);
+            if (currentUser && currentUser.phone === data.phone) {
+                currentUser.balance = data.newBalance; saveUser(); updateBalanceUI();
+            }
+            document.getElementById("adminLoginBtn").click();
+        } else toast(data.message);
     };
-  });
-
-  document.querySelectorAll(".tab").forEach(tab => {
-    tab.onclick = () => gotoPage(tab.getAttribute("data-page"));
-  });
-
-  // መጀመሪያ የተጠቃሚ መረጃ ማስገባት
-  if (loadUserFromStorage()) {
-    gotoPage("lobbyPage");
-    document.getElementById("mainApp").classList.remove("hidden");
-  } else {
-    gotoPage("splashPage");
-  }
-
-  if (window.Telegram && Telegram.WebApp) {
-    Telegram.WebApp.ready();
-    Telegram.WebApp.expand();
-    const user = Telegram.WebApp.initDataUnsafe?.user;
-    if (user && user.first_name) {
-      document.getElementById("regName").value = user.first_name + (user.last_name ? " " + user.last_name : "");
-    }
-  }
-
-  setTimeout(() => { if (window.speechSynthesis) window.speechSynthesis.getVoices(); }, 500);
+    if (loadUser()) gotoPage("lobbyPage"); else gotoPage("splashPage");
+    if (window.Telegram && Telegram.WebApp) { Telegram.WebApp.ready(); Telegram.WebApp.expand(); let u = Telegram.WebApp.initDataUnsafe?.user; if (u && u.first_name) document.getElementById("regName").value = u.first_name + (u.last_name ? " " + u.last_name : ""); }
+    setTimeout(() => { if (window.speechSynthesis) window.speechSynthesis.getVoices(); }, 500);
 </script>
 </body>
 </html>
