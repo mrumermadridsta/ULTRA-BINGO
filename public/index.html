@@ -9,6 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&family=Noto+Sans+Ethiopic:wght@400;700&display=swap" rel="stylesheet">
 <style>
+/* ===== ሙሉ CSS (ከላይ እንደቀረበው) ===== */
 :root{
   --bg:#05050f;--s1:#0d0d20;--s2:#13132a;--s3:#1a1a35;
   --gold:#FFD700;--gold2:#FF8C00;--green:#00FF88;--red:#FF2055;
@@ -633,8 +634,15 @@ function connectSocket(){
 
 function updateRoomPlayerCount(count){document.getElementById('rPCount').textContent=count+'/100';}
 function openRoom(price,name){
-  if(!currentUser){toast2('መጀመሪያ ይመዝገቡ');return;}
-  if(currentUser.balance<price){toast2('በቂ ገንዘብ የለም');return;}
+  // ✅ ተጠቃሚ መኖሩን አረጋግጥ
+  if(!currentUser){
+    toast2('እባክዎ መጀመሪያ ይመዝገቡ');
+    return;
+  }
+  if(currentUser.balance<price){
+    toast2('በቂ ገንዘብ የለዎትም። እባክዎ ዲፖዚት ያድርጉ');
+    return;
+  }
   pickerRoom={name:name,price:price,color:price<=10?'gold':'purple',count:0};
   if(!socket)connectSocket();
   socket.emit('createRoom',{playerName:currentUser.name,phone:currentUser.phone});
