@@ -3,13 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>⚡ ULTRA BINGO - እውነተኛ ገንዘብ</title>
+<title>ULTRA BINGO - እውነተኛ ገንዘብ</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&family=Noto+Sans+Ethiopic:wght@400;700&display=swap" rel="stylesheet">
 <style>
-/* ===== ሙሉ CSS እንደበፊቱ ይቆያል (በመጠን ለማሳጠር አልደገምም) ===== */
 :root{
   --bg:#05050f;--s1:#0d0d20;--s2:#13132a;--s3:#1a1a35;
   --gold:#FFD700;--gold2:#FF8C00;--green:#00FF88;--red:#FF2055;
@@ -20,8 +19,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);}
 body{color:var(--text);font-family:'Rajdhani','Noto Sans Ethiopic',sans-serif;font-weight:500;}
 .bg-wrap{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
 .bg-wrap::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 50% at 15% 15%,#FFD70010 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 85% 80%,#CC44FF0a 0%,transparent 60%);}
-.efloat{position:absolute;animation:ef linear infinite;pointer-events:none;user-select:none;}
-@keyframes ef{0%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-25px) rotate(180deg);}100%{transform:translateY(0) rotate(360deg);}}
 .page{display:none !important;position:fixed;inset:0;z-index:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
 .page.active{display:block !important;animation:pageIn 0.35s cubic-bezier(0.22,1,0.36,1);}
 @keyframes pageIn{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
@@ -101,7 +98,7 @@ body{color:var(--text);font-family:'Rajdhani','Noto Sans Ethiopic',sans-serif;fo
 .pt.t50::after{background:var(--purple);}
 .pt.t100::after{background:var(--red);}
 .pt-icon{font-size:1.8rem;}
-.pt-name{font-weight:700;font-size:0.9rem;}
+.pt-name{display:none;}
 .pt-price{font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:900;}
 .pt.t5 .pt-price{color:var(--green);}
 .pt.t10 .pt-price{color:var(--gold);}
@@ -129,7 +126,7 @@ body{color:var(--text);font-family:'Rajdhani','Noto Sans Ethiopic',sans-serif;fo
 .lb-w{font-size:0.58rem;color:var(--muted);}
 .bnav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--s1);border-top:1px solid var(--border);display:flex;padding:7px 0 max(7px,env(safe-area-inset-bottom));}
 .bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px;cursor:pointer;}
-.bn-ic{font-size:1.1rem;}
+.bn-ic{display:none;}
 .bn-lb{font-size:0.5rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
 .bn.act .bn-lb{color:var(--gold);}
 #picker{min-height:100vh;padding:16px 15px 36px;gap:11px;}
@@ -301,7 +298,7 @@ body{color:var(--text);font-family:'Rajdhani','Noto Sans Ethiopic',sans-serif;fo
 </style>
 </head>
 <body>
-<div class="bg-wrap"><div id="emojiBg"></div></div>
+<div class="bg-wrap"></div>
 <div class="toast" id="toast"></div>
 
 <!-- ════ SPLASH ════ -->
@@ -311,60 +308,69 @@ body{color:var(--text);font-family:'Rajdhani','Noto Sans Ethiopic',sans-serif;fo
   <div class="logo-flag"><div class="flag-s" style="background:#009A44"></div><div class="flag-s" style="background:#FCDD09"></div><div class="flag-s" style="background:#DA121A"></div></div></div>
   <div class="wcard">
     <div class="wc-t">👑 እንኳን ወደ Ultra Bingo ደህና መጡ!</div>
-    <div class="wc-row"><span>🎮</span><span>ከእውነተኛ ተጫዋቾች ጋር <strong>ተፎካከሩ</strong></span></div>
-    <div class="wc-row"><span>💰</span><span>አሸንፈው <strong>ብር ይቀበሉ</strong></span></div>
-    <div class="wc-row"><span>🎁</span><span>አዲስ ተጠቃሚ <strong style="color:var(--gold)">+10 ብር ቦነስ!</strong></span></div>
-    <div class="wc-row"><span>🔊</span><span>ቁጥሮች <strong>በድምፅ ይጠራሉ</strong></span></div>
-    <div class="wc-row"><span>🔄</span><span>ዛሬ ለሁሉም <strong>ተመሳሳይ ቁጥሮች</strong></span></div>
+    <div class="wc-row"><span>🎮</span><span>ከእውነተኛ ተጫዋቾች ጋር ተፎካከሩ</span></div>
+    <div class="wc-row"><span>💰</span><span>አሸንፈው ብር ይቀበሉ</span></div>
+    <div class="wc-row"><span>🎁</span><span>አዲስ ተጠቃሚ +10 ብር ቦነስ</span></div>
+    <div class="wc-row"><span>🔊</span><span>ቁጥሮች በድምፅ ይጠራሉ</span></div>
+    <div class="wc-row"><span>🔄</span><span>ዛሬ ለሁሉም ተመሳሳይ ቁጥሮች</span></div>
   </div>
   <div class="splash-stats">
     <div class="ss"><div class="ss-v" style="color:var(--green)" id="splashOnline">0</div><div class="ss-l">Online</div></div>
     <div class="ss"><div class="ss-v" style="color:var(--gold)">5-100</div><div class="ss-l">ብር</div></div>
     <div class="ss"><div class="ss-v" style="color:var(--blue)">80%</div><div class="ss-l">ሽልማት</div></div>
   </div>
-  <button class="btn-main" onclick="gotoPage('register')">📱 ተመዝገቡ — ጀምሩ!</button>
-  <button class="btn-ghost" onclick="demoGame()">🎮 ቀጥታ Demo ሙከራ</button>
+  <button class="btn-main" onclick="gotoPage('register')">📱 ተመዝገቡ — ጀምሩ</button>
+  <button class="btn-ghost" onclick="demoGame()">🎮 ያለ ምዝገባ ይሞክሩ</button>
 </div>
 
-<!-- ════ REGISTER ════ -->
+<!-- ════ REGISTER (ምዝገባ ብቻ) ════ -->
 <div class="page" id="register">
   <div class="ph"><div class="ph-back" onclick="gotoPage('splash')">←</div><div><div class="ph-t">ምዝገባ / Register</div><div class="ph-s">አካውንት ይፍጠሩ</div></div></div>
   <div class="reg-card">
     <div style="font-size:2rem;margin-bottom:7px;">📱</div>
     <div style="font-size:0.95rem;font-weight:700;margin-bottom:5px;">ስልክ ቁጥርዎን ያስፈልጋል</div>
-    <div style="font-size:0.78rem;color:var(--muted);line-height:1.6;margin-bottom:14px;">አካውንትዎን ለመፍጠር ስምና ስልክ ቁጥርዎን ያስፈልጋሉ።</div>
+    <div style="font-size:0.78rem;color:var(--muted);line-height:1.6;margin-bottom:14px;">አካውንትዎን ለመፍጠር ስም፣ ስልክ ቁጥር እና ፓስዎርድ ያስፈልጋሉ</div>
     <div class="inp-l">ስምዎ</div>
-    <input class="inp" type="text" id="regName" placeholder="ለምሳሌ፦ Abebe Kebede">
+    <input class="inp" type="text" id="regName" placeholder="ለምሳሌ Abebe Kebede">
     <div class="inp-l">ስልክ ቁጥር</div>
     <div class="inp-wrap"><input class="inp pfx" type="tel" id="regPhone" placeholder="9XXXXXXXX"><span class="inp-pfx">+251</span></div>
-  </div>
-  <div class="reg-card">
-    <div style="font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:9px;">✅ ለምን ቁጥርዎ ያስፈልጋል</div>
-    <div class="why-item"><span>🔐</span><span>አካውንት ደህንነትና ማረጋገጫ</span></div>
-    <div class="why-item"><span>💰</span><span>ሽልማት ክፍያ ማረጋገጫ</span></div>
-    <div class="why-item"><span>🔄</span><span>አካውንት ማግኘት (Recovery)</span></div>
-    <div class="why-item"><span>🛡</span><span>ከማጭበርበር ጥበቃ</span></div>
-    <div class="privacy">🔒 ቁጥርዎ ሚስጥር ሆኖ ይቀመጣል • ለሶስተኛ ወገን አይሰጥም</div>
+    <div class="inp-l">ፓስዎርድ</div>
+    <input class="inp" type="password" id="regPassword" placeholder="ደህንነቱ የተጠበቀ ፓስዎርድ">
   </div>
   <button class="btn-phone" id="submitRegBtn"><span>📱</span>ስልክ ቁጥር አጋራ — ተመዝገብ</button>
   <button class="btn-cancel" onclick="gotoPage('splash')">ሰርዝ</button>
+  <div style="margin-top:10px; text-align:center;"><span style="color:var(--gold); cursor:pointer;" onclick="gotoPage('loginPage')">ቀድሞ አካውንት አለኝ? ይግቡ</span></div>
+</div>
+
+<!-- ════ ሎጊን ገጽ ════ -->
+<div class="page" id="loginPage">
+  <div class="ph"><div class="ph-back" onclick="gotoPage('splash')">←</div><div><div class="ph-t">ይግቡ / Login</div><div class="ph-s">ወደ መለያዎ ይግቡ</div></div></div>
+  <div class="reg-card">
+    <div class="inp-l">ስልክ ቁጥር</div>
+    <div class="inp-wrap"><input class="inp pfx" type="tel" id="loginPhone" placeholder="9XXXXXXXX"><span class="inp-pfx">+251</span></div>
+    <div class="inp-l">ፓስዎርድ</div>
+    <input class="inp" type="password" id="loginPassword" placeholder="ፓስዎርድ">
+  </div>
+  <button class="btn-phone" id="doLoginBtn">🔓 ይግቡ</button>
+  <button class="btn-cancel" onclick="gotoPage('splash')">ሰርዝ</button>
+  <div style="margin-top:10px; text-align:center;"><span style="color:var(--gold); cursor:pointer;" onclick="gotoPage('register')">አዲስ አካውንት ይፍጠሩ</span></div>
 </div>
 
 <!-- ════ BONUS ════ -->
 <div class="page" id="bonus">
   <div class="bonus-ring"><div class="bonus-inner"><div class="bonus-amt">+10</div><div class="bonus-birr">ብር</div></div></div>
-  <div style="font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:900;color:var(--gold);letter-spacing:2px;">🎁 ቦነስ ተቀበሉ!</div>
-  <div style="font-size:0.85rem;color:var(--muted);max-width:280px;line-height:1.6;text-align:center;">እንኳን ደስ አለዎ! ምዝገባዎ ተጠናቋል። 10 ብር ቦነስ ወደ አካውንትዎ ተጨምሯል!</div>
+  <div style="font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:900;color:var(--gold);letter-spacing:2px;">🎁 ቦነስ ተቀበሉ</div>
+  <div style="font-size:0.85rem;color:var(--muted);max-width:280px;line-height:1.6;text-align:center;">እንኳን ደስ አለዎ! ምዝገባዎ ተጠናቋል። 10 ብር ቦነስ ወደ አካውንትዎ ተጨምሯል</div>
   <div class="bonus-info">
     <div class="bi-row"><span class="bi-l">Player ID</span><span class="bi-v" id="bonusId" style="color:var(--blue)">UB-12345</span></div>
     <div class="bi-row"><span class="bi-l">ስም</span><span class="bi-v" id="bonusName">—</span></div>
     <div class="bi-row"><span class="bi-l">ቦነስ</span><span class="bi-v" style="color:var(--green)">+10.00 ብር</span></div>
     <div class="bi-row"><span class="bi-l">አጠቃላይ</span><span class="bi-v" style="color:var(--gold)">10.00 ብር</span></div>
   </div>
-  <button class="btn-main" style="max-width:340px" onclick="gotoPage('lobby')">🎮 ወደ ጨዋታ ይሂዱ!</button>
+  <button class="btn-main" style="max-width:340px" onclick="gotoPage('lobby')">🎮 ወደ ጨዋታ ይሂዱ</button>
 </div>
 
-<!-- ════ LOBBY (ከውሸት መረጃ ነጻ) ════ -->
+<!-- ════ LOBBY ════ -->
 <div class="page" id="lobby">
   <div class="lh">
     <div class="lh-top">
@@ -391,10 +397,10 @@ body{color:var(--text);font-family:'Rajdhani','Noto Sans Ethiopic',sans-serif;fo
 
   <div class="sec-h"><span class="sec-t">🎮 ክፍት ክፍሎች — ዋጋ ይምረጡ</span></div>
   <div class="price-tiers">
-    <div class="pt t5" onclick="openRoom(5,'ጀማሪ ቢንጎ')"><div class="pt-badge pop">ለጀማሪ</div><div class="pt-icon">🌱</div><div class="pt-name">ጀማሪ ቢንጎ</div><div class="pt-price">5 ብር</div><div class="pt-meta">ካርቴላ ዋጋ</div><div class="pt-players"><div class="pdot"></div><span id="roomPlayers_5">0</span> ተጫዋቾች</div></div>
-    <div class="pt t10" onclick="openRoom(10,'ወርቅ ቢንጎ')"><div class="pt-badge hot">HOT 🔥</div><div class="pt-icon">👑</div><div class="pt-name">ወርቅ ቢንጎ</div><div class="pt-price">10 ብር</div><div class="pt-meta">ካርቴላ ዋጋ</div><div class="pt-players"><div class="pdot"></div><span id="roomPlayers_10">0</span> ተጫዋቾች</div></div>
-    <div class="pt t50" onclick="openRoom(50,'VIP ቢንጎ')"><div class="pt-icon">💎</div><div class="pt-name">VIP ቢንጎ</div><div class="pt-price">50 ብር</div><div class="pt-meta">ካርቴላ ዋጋ</div><div class="pt-players"><div class="pdot"></div><span id="roomPlayers_50">0</span> ተጫዋቾች</div></div>
-    <div class="pt t100" onclick="openRoom(100,'ቻምፒዮን')"><div class="pt-icon">🏆</div><div class="pt-name">ቻምፒዮን</div><div class="pt-price">100 ብር</div><div class="pt-meta">ካርቴላ ዋጋ</div><div class="pt-players"><div class="pdot"></div><span id="roomPlayers_100">0</span> ተጫዋቾች</div></div>
+    <div class="pt t5" onclick="openRoom(5,'5 ብር')"><div class="pt-badge pop">ለጀማሪ</div><div class="pt-icon">🌱</div><div class="pt-name">5 ብር</div><div class="pt-price">5 ብር</div><div class="pt-meta">ካርቴላ ዋጋ</div><div class="pt-players"><div class="pdot"></div><span id="roomPlayers_5">0</span> ተጫዋቾች</div></div>
+    <div class="pt t10" onclick="openRoom(10,'10 ብር')"><div class="pt-badge hot">HOT</div><div class="pt-icon">👑</div><div class="pt-name">10 ብር</div><div class="pt-price">10 ብር</div><div class="pt-meta">ካርቴላ ዋጋ</div><div class="pt-players"><div class="pdot"></div><span id="roomPlayers_10">0</span> ተጫዋቾች</div></div>
+    <div class="pt t50" onclick="openRoom(50,'50 ብር')"><div class="pt-icon">💎</div><div class="pt-name">50 ብር</div><div class="pt-price">50 ብር</div><div class="pt-meta">ካርቴላ ዋጋ</div><div class="pt-players"><div class="pdot"></div><span id="roomPlayers_50">0</span> ተጫዋቾች</div></div>
+    <div class="pt t100" onclick="openRoom(100,'100 ብር')"><div class="pt-icon">🏆</div><div class="pt-name">100 ብር</div><div class="pt-price">100 ብር</div><div class="pt-meta">ካርቴላ ዋጋ</div><div class="pt-players"><div class="pdot"></div><span id="roomPlayers_100">0</span> ተጫዋቾች</div></div>
   </div>
 
   <div class="sec-h"><span class="sec-t">🏆 ሌደርቦርድ — እውነተኛ አሸናፊዎች</span></div>
@@ -406,10 +412,10 @@ body{color:var(--text);font-family:'Rajdhani','Noto Sans Ethiopic',sans-serif;fo
   </div>
   <div style="height:8px;"></div>
   <div class="bnav">
-    <div class="bn act" onclick="gotoPage('lobby')"><div class="bn-ic">🏠</div><div class="bn-lb">ዋና</div></div>
-    <div class="bn" onclick="gotoPage('wallet')"><div class="bn-ic">💰</div><div class="bn-lb">ሂሳብ</div></div>
-    <div class="bn" onclick="showMod('inviteMod')"><div class="bn-ic">🔗</div><div class="bn-lb">ጋብዝ</div></div>
-    <div class="bn" onclick="showMod('supportMod')"><div class="bn-ic">🎧</div><div class="bn-lb">ድጋፍ</div></div>
+    <div class="bn act" onclick="gotoPage('lobby')"><div class="bn-lb">ዋና</div></div>
+    <div class="bn" onclick="gotoPage('wallet')"><div class="bn-lb">ሂሳብ</div></div>
+    <div class="bn" onclick="showMod('inviteMod')"><div class="bn-lb">ጋብዝ</div></div>
+    <div class="bn" onclick="showMod('supportMod')"><div class="bn-lb">ድጋፍ</div></div>
   </div>
 </div>
 
@@ -417,7 +423,7 @@ body{color:var(--text);font-family:'Rajdhani','Noto Sans Ethiopic',sans-serif;fo
 <div class="page" id="picker">
   <div class="ph"><div class="ph-back" onclick="gotoPage('lobby')">←</div><div><div class="ph-t" id="pickerTitle">ካርቴላ ምረጡ</div><div class="ph-s">1-400 ካርቴላዎች ይገኛሉ</div></div></div>
   <div class="picker-info">
-    <div class="pi-room" id="pickerRoom">ወርቅ ቢንጎ — 10 ብር</div>
+    <div class="pi-room" id="pickerRoom">10 ብር ክፍል</div>
     <div class="pi-sub">የዛሬ አጠቃላይ ሽልማት</div>
     <div class="pi-prize" id="pickerPrize">0 ብር</div>
   </div>
@@ -438,9 +444,9 @@ body{color:var(--text);font-family:'Rajdhani','Noto Sans Ethiopic',sans-serif;fo
 
 <!-- ════ ROOM WAITING ════ -->
 <div class="page" id="room">
-  <div class="ph" style="padding:14px 15px 0;"><div class="ph-back" onclick="gotoPage('lobby')">←</div><div><div class="ph-t" id="rName">ወርቅ ቢንጎ</div><div class="ph-s">10 ብር/ካርቴላ • 100 ተጫዋቾች</div></div></div>
+  <div class="ph" style="padding:14px 15px 0;"><div class="ph-back" onclick="gotoPage('lobby')">←</div><div><div class="ph-t" id="rName">10 ብር ክፍል</div><div class="ph-s">10 ብር/ካርቴላ • 100 ተጫዋቾች</div></div></div>
   <div style="padding:0 15px;display:flex;flex-direction:column;gap:11px;padding-bottom:28px;">
-    <div class="pb"><div class="pb-l">💰 አጠቃላይ ሽልማት</div><div class="pb-a" id="rPrize">0 ብር</div><div class="pb-s" id="rPrizeSub">0 ካርዶች × 0 ብር • 80% ለአሸናፊ</div></div>
+    <div class="pb"><div class="pb-l">💰 አጠቃላይ ሽልማት</div><div class="pb-a" id="rPrize">0 ብር</div><div class="pb-s" id="rPrizeSub">0 ካርዶች × 10 ብር • 80% ለአሸናፊ</div></div>
     <div class="cd-box"><div class="cd-l" id="cdLabel">⏳ 2 ሰው ካርቴላ ሲወስዱ ይጀምራል</div><div class="cd-n" id="cdNum">30</div><div class="cd-bar-bg"><div class="cd-bar" id="cdBar" style="width:100%"></div></div></div>
     <div style="display:flex;justify-content:space-between;"><div style="font-size:0.58rem;color:var(--muted);">👥 ተጫዋቾች</div><div style="font-family:'Orbitron';font-size:0.76rem;color:var(--green);" id="rPCount">0/100</div></div>
     <div class="pg-grid" id="pgGrid"></div>
@@ -454,16 +460,18 @@ body{color:var(--text);font-family:'Rajdhani','Noto Sans Ethiopic',sans-serif;fo
   <div class="called-box"><div class="called-letter" id="calledLetter">—</div><div class="called-num" id="calledNum">—</div><div class="called-r"><div class="cr-l">ቀዳሚ ቁጥሮች</div><div class="prev-ns" id="prevNums"></div><div class="ctrl-row"><div class="atog" id="autoTog" onclick="toggleAuto()"><div class="atog-k"></div></div><div class="atog-l" id="autoLbl">ራሱ ✅</div><div class="voice-btn on" id="voiceBtn" onclick="toggleVoice()">🔊 ድምፅ</div></div></div></div>
   <div class="game-split"><div class="hist-panel"><div class="hist-title">📋 ታሪክ</div><div class="hist-bingo-row"><div class="hbh b">B</div><div class="hbh i">I</div><div class="hbh n">N</div><div class="hbh g">G</div><div class="hbh o">O</div></div><div class="hist-grid" id="histGrid"></div></div><div class="card-panel"><div class="card-top" id="myCardLabel">ካርቴላ #—</div><div class="card-letters"><div class="cl">B</div><div class="cl">I</div><div class="cl">N</div><div class="cl">G</div><div class="cl">O</div></div><div class="card-grid" id="cardGrid"></div></div></div>
   <div class="comp-box"><div class="comp-t">👥 ተፎካካሪዎች</div><div class="comp-list" id="compList"></div></div>
-  <div class="g-bot"><div class="g-timer"><div class="gt-l">ቀጣይ</div><div class="gt-v" id="nextTimer">3s</div></div><button class="btn-full" style="flex:2" onclick="callBingo()">🏆 BINGO!</button><button style="width:42px;padding:9px;border-radius:var(--r);border:1px solid var(--border);background:var(--s1);font-size:0.9rem;cursor:pointer;" onclick="gotoPage('lobby')">🏠</button></div>
+  <div class="g-bot"><div class="g-timer"><div class="gt-l">ቀጣይ</div><div class="gt-v" id="nextTimer">3s</div></div><button class="btn-full" style="flex:2" onclick="callBingo()">🏆 BINGO</button><button style="width:42px;padding:9px;border-radius:var(--r);border:1px solid var(--border);background:var(--s1);font-size:0.9rem;cursor:pointer;" onclick="gotoPage('lobby')">🏠</button></div>
 </div>
 
 <!-- ════ WALLET & ADMIN PANEL ════ -->
 <div class="page" id="wallet">
   <div class="ph" style="padding:14px 15px 0;"><div class="ph-back" onclick="gotoPage('lobby')">←</div><div><div class="ph-t">ሂሳብ / Wallet</div><div class="ph-s">ቀሪ፣ ቀይር፣ ወጪ</div></div></div>
   <div style="padding:12px 15px;"><div class="bal-card"><div class="bal-l">💰 አጠቃላይ ቀሪ ሂሳብ</div><div class="bal-a" id="walletBalance">0.00</div><div class="bal-s">ብር (ETB)</div><div class="bal-bonus" id="bonusMsg">🎁 +10 ብር ቦነስ ተጨምሯል</div></div>
-  <div class="wa-grid"><div class="wa" onclick="showMod('depositMod')"><div class="wa-ic" style="background:#00FF8820;">➕</div><div><div class="wa-t">Deposit</div><div class="wa-s">ገንዘብ አስገቡ</div></div></div><div class="wa" onclick="showMod('withdrawMod')"><div class="wa-ic" style="background:#FF205520;">💸</div><div><div class="wa-t">Withdraw</div><div class="wa-s">ገንዘብ ውሰዱ</div></div></div><div class="wa" onclick="showMod('depositMod')"><div class="wa-ic" style="background:#FFD70020;">🎁</div><div><div class="wa-t">Transfer</div><div class="wa-s">ለጓደኛ ላኩ</div></div></div><div class="wa" onclick="toast2('🔄 ብዙም ቀን አይቀረውም!')"><div class="wa-ic" style="background:#00CFFF20;">🔄</div><div><div class="wa-t">Convert</div><div class="wa-s">ነጥብ → ብር</div></div></div></div>
+  <div class="wa-grid">
+    <div class="wa" onclick="showMod('depositMod')"><div class="wa-ic" style="background:#00FF8820;">➕</div><div><div class="wa-t">Deposit</div><div class="wa-s">ገንዘብ አስገቡ</div></div></div>
+    <div class="wa" onclick="showMod('withdrawMod')"><div class="wa-ic" style="background:#FF205520;">💸</div><div><div class="wa-t">Withdraw</div><div class="wa-s">ገንዘብ ውሰዱ</div></div></div>
+  </div>
   
-  <!-- አስተዳዳሪ ፓነል -->
   <div class="glass" style="margin-top:10px;">
     <div class="comp-t" style="margin-bottom:8px;">👑 አስተዳዳሪ ፓነል</div>
     <input type="password" id="adminKeyInput" class="inp" placeholder="Admin Key" style="margin-bottom:5px;">
@@ -473,7 +481,7 @@ body{color:var(--text);font-family:'Rajdhani','Noto Sans Ethiopic',sans-serif;fo
 
   <div style="font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;margin-top:12px;">📜 የክፍያ ታሪክ</div>
   <div class="tx-box"><div class="tx-head">ዝርዝር</div><div id="transactionList" style="text-align:center;padding:20px;color:var(--muted);">ምንም ግብይት የለም</div></div></div>
-  <div class="bnav"><div class="bn" onclick="gotoPage('lobby')"><div class="bn-ic">🏠</div><div class="bn-lb">ዋና</div></div><div class="bn act"><div class="bn-ic">💰</div><div class="bn-lb">ሂሳብ</div></div><div class="bn" onclick="showMod('inviteMod')"><div class="bn-ic">🔗</div><div class="bn-lb">ጋብዝ</div></div><div class="bn" onclick="showMod('supportMod')"><div class="bn-ic">🎧</div><div class="bn-lb">ድጋፍ</div></div></div>
+  <div class="bnav"><div class="bn" onclick="gotoPage('lobby')"><div class="bn-lb">ዋና</div></div><div class="bn act"><div class="bn-lb">ሂሳብ</div></div><div class="bn" onclick="showMod('inviteMod')"><div class="bn-lb">ጋብዝ</div></div><div class="bn" onclick="showMod('supportMod')"><div class="bn-lb">ድጋፍ</div></div></div>
 </div>
 
 <!-- MODALS -->
@@ -486,18 +494,18 @@ body{color:var(--text);font-family:'Rajdhani','Noto Sans Ethiopic',sans-serif;fo
   <div style="font-size:0.7rem;">ከ100 እስከ 10,000 ብር</div>
 </div>
 <div class="inp-l">መጠን (ብር)</div>
-<input class="inp" type="number" id="depositAmount" placeholder="ለምሳሌ፦ 100" min="100">
+<input class="inp" type="number" id="depositAmount" placeholder="ለምሳሌ 100" min="100">
 <div class="inp-l">የቴሌብር ማጣቀሻ ቁጥር</div>
 <input class="inp" type="text" id="depositRef" placeholder="ክፍያ ከፍለው የተሰጠውን ቁጥር ያስገቡ">
 <div class="pm-list"><div class="pm sel" onclick="selPM(this)"><span class="pm-ic">📱</span>Telebirr</div><div class="pm" onclick="selPM(this)"><span class="pm-ic">🏦</span>CBE Birr</div></div>
 <button class="btn-full" onclick="requestDeposit()">📲 ጥያቄ አስገባ</button>
 <button class="btn-ol" onclick="closeMod('depositMod')">ሰርዝ</button></div></div>
 <div class="modal" id="withdrawMod"><div class="modal-box"><div class="modal-h"></div><div class="modal-t">💸 Withdraw</div><div class="modal-s">ዝቅተኛ 100 ብር (ፒን: 1234)</div><div class="inp-l">መጠን (ብር)</div><input class="inp" type="number" id="withdrawAmount" placeholder="ቢያንስ 100 ብር" min="100"><div class="inp-l">ስልክ ቁጥር</div><div class="inp-wrap"><input class="inp pfx" id="withdrawPhone" type="tel" placeholder="9XXXXXXXX"><span class="inp-pfx">+251</span></div><input class="inp" type="password" id="withdrawPin" placeholder="የደህንነት ፒን" value="1234"><button class="btn-full" onclick="requestWithdraw()">💸 አስገባ</button><button class="btn-ol" onclick="closeMod('withdrawMod')">ሰርዝ</button></div></div>
-<div class="modal" id="inviteMod"><div class="modal-box"><div class="modal-h"></div><div class="modal-t">🔗 ጓደኛ ጋብዙ</div><div class="modal-s">ለእያንዳንዱ ጓደኛ +5 ብር ቦነስ!</div><div style="background:var(--s2);border:1px solid var(--border);border-radius:11px;padding:13px;text-align:center;margin-bottom:11px;"><div style="font-size:0.58rem;color:var(--muted);margin-bottom:6px;">የጋበዛ ኮድዎ</div><div style="font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:700;color:var(--gold);letter-spacing:3px;" id="referralCodeDisplay">UB-A1B2C3</div></div><button class="btn-full" onclick="copyReferralCode()">📋 ሊንክ ቅዱ</button><button class="btn-ol" onclick="closeMod('inviteMod')">ዝጋ</button></div></div>
+<div class="modal" id="inviteMod"><div class="modal-box"><div class="modal-h"></div><div class="modal-t">🔗 ጓደኛ ጋብዙ</div><div class="modal-s">ለእያንዳንዱ ጓደኛ +5 ብር ቦነስ</div><div style="background:var(--s2);border:1px solid var(--border);border-radius:11px;padding:13px;text-align:center;margin-bottom:11px;"><div style="font-size:0.58rem;color:var(--muted);margin-bottom:6px;">የጋበዛ ኮድዎ</div><div style="font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:700;color:var(--gold);letter-spacing:3px;" id="referralCodeDisplay">UB-A1B2C3</div></div><button class="btn-full" onclick="copyReferralCode()">📋 ሊንክ ቅዱ</button><button class="btn-ol" onclick="closeMod('inviteMod')">ዝጋ</button></div></div>
 <div class="modal" id="supportMod"><div class="modal-box"><div class="modal-h"></div><div class="modal-t">🎧 ድጋፍ / Support</div><div class="modal-s">እርዳታ ይፈልጋሉ?</div><div style="display:flex;flex-direction:column;gap:7px;margin-bottom:11px;"><div style="background:var(--s2);border:1px solid var(--border);border-radius:11px;padding:12px;display:flex;align-items:center;gap:9px;cursor:pointer;" onclick="toast2('Telegram ይከፈታል...')"><span style="font-size:1.2rem;">💬</span><div><div style="font-size:0.82rem;font-weight:600;">Telegram Support</div><div style="font-size:0.65rem;color:var(--muted);">@UltraBingoSupport</div></div></div><div style="background:var(--s2);border:1px solid var(--border);border-radius:11px;padding:12px;display:flex;align-items:center;gap:9px;cursor:pointer;" onclick="toast2('Guide ይከፈታል...')"><span style="font-size:1.2rem;">📖</span><div><div style="font-size:0.82rem;font-weight:600;">መመሪያ / Guide</div><div style="font-size:0.65rem;color:var(--muted);">እንዴት መጫወት እንደሚቻል</div></div></div></div><button class="btn-ol" onclick="closeMod('supportMod')">ዝጋ</button></div></div>
 
 <script>
-// ==================== GLOBAL ====================
+// ==================== ግሎባል ተለዋዋጮች ====================
 let socket = null;
 let currentUser = null;
 let pickerRoom = null;
@@ -512,7 +520,6 @@ let linesCompleted = 0;
 let calledNumbers = [];
 let autoMark = true;
 let voiceOn = true;
-let comps = [];
 let bingoLinesSet = new Set();
 
 function toast2(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
@@ -523,471 +530,270 @@ function selPM(el){el.closest('.pm-list').querySelectorAll('.pm').forEach(m=>m.c
 function copyReferralCode(){if(currentUser&&currentUser.refCode){navigator.clipboard.writeText(currentUser.refCode);toast2('ኮድ ተቀድቷል');}}
 function getLetter(n){return n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';}
 function speak(text){if(!voiceOn||!window.speechSynthesis)return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='am-ET';u.rate=0.85;window.speechSynthesis.speak(u);}
-function toggleVoice(){voiceOn=!voiceOn;const b=document.getElementById('voiceBtn');b.textContent=voiceOn?'🔊 ድምፅ':'🔇 ድምፅ';b.className='voice-btn'+(voiceOn?' on':'');toast2(voiceOn?'🔊 ድምፅ ነቅቷል':'🔇 ድምፅ ጠፍቷል');}
-function toggleAuto(){autoMark=!autoMark;document.getElementById('autoTog').className='atog'+(autoMark?'':' off');document.getElementById('autoLbl').textContent=autoMark?'ራሱ ✅':'እጅ 🖐';toast2(autoMark?'✅ ራሱ ይምታል':'🖐 በእጅ ምቶ');}
-function saveUserToStorage(user){localStorage.setItem('ultraBingoUser',JSON.stringify(user));}
-function loadUserFromStorage(){const saved=localStorage.getItem('ultraBingoUser');if(saved){try{return JSON.parse(saved);}catch(e){return null;}}return null;}
-function updateBalanceUI(){
-  if(currentUser){
-    document.getElementById('headerBal').textContent=currentUser.balance.toFixed(2)+' ብር';
-    document.getElementById('walletBalance').textContent=currentUser.balance.toFixed(2);
-  }
-}
+function toggleVoice(){voiceOn=!voiceOn;const b=document.getElementById('voiceBtn');b.textContent=voiceOn?'🔊 ድምፅ':'🔇 ድምፅ';b.className='voice-btn'+(voiceOn?' on':'');toast2(voiceOn?'ድምፅ ነቅቷል':'ድምፅ ጠፍቷል');}
+function toggleAuto(){autoMark=!autoMark;document.getElementById('autoTog').className='atog'+(autoMark?'':' off');document.getElementById('autoLbl').textContent=autoMark?'ራሱ ✅':'እጅ 🖐';toast2(autoMark?'ራሱ ይምታል':'በእጅ ምቶ');}
+function saveUserToStorage(user){localStorage.setItem('ultraUser',JSON.stringify(user));}
+function loadUserFromStorage(){const saved=localStorage.getItem('ultraUser');if(saved){try{return JSON.parse(saved);}catch(e){}}return null;}
+function updateBalanceUI(){if(currentUser){document.getElementById('headerBal').innerText=currentUser.balance.toFixed(2)+' ብር';document.getElementById('walletBalance').innerText=currentUser.balance.toFixed(2);}}
 
 async function submitRegistration(){
   const name=document.getElementById('regName').value.trim();
   const phone=document.getElementById('regPhone').value.trim();
-  if(!name||phone.length<9){toast2('ስም እና ስልክ ያስፈልጋል');return;}
-  const res=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,phone,refCode:''})});
+  const password=document.getElementById('regPassword').value;
+  if(!name||phone.length<9||!password){toast2('ስም፣ ስልክ እና ፓስዎርድ ያስፈልጋል');return;}
+  const res=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,phone,password,refCode:''})});
   const data=await res.json();
   if(data.success){
-    currentUser=data.user;
-    currentUser.phone=phone;
-    saveUserToStorage(currentUser);
-    document.getElementById('bonusId').textContent=currentUser.refCode;
-    document.getElementById('bonusName').textContent=currentUser.name;
-    document.getElementById('referralCodeDisplay').textContent=currentUser.refCode;
-    updateBalanceUI();
-    gotoPage('bonus');
+    currentUser=data.user; currentUser.phone=phone; saveUserToStorage(currentUser);
+    document.getElementById('bonusId').innerHTML=currentUser.refCode; document.getElementById('bonusName').innerHTML=currentUser.name;
+    document.getElementById('referralCodeDisplay').innerHTML=currentUser.refCode;
+    updateBalanceUI(); gotoPage('bonus');
   }else toast2(data.message);
 }
 document.getElementById('submitRegBtn').onclick=submitRegistration;
 
-function tryAutoLogin(){
-  const saved=loadUserFromStorage();
-  if(saved && saved.phone && saved.name){
-    currentUser=saved;
-    updateBalanceUI();
-    gotoPage('lobby');
-    toast2('እንኳን ደህና መጡ! '+currentUser.name);
-    return true;
-  }
-  return false;
+async function doLogin(){
+  const phone=document.getElementById('loginPhone').value.trim();
+  const password=document.getElementById('loginPassword').value;
+  if(!phone||!password){toast2('ስልክ እና ፓስዎርድ ያስፈልጋል');return;}
+  const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone,password})});
+  const data=await res.json();
+  if(data.success){
+    currentUser=data.user; currentUser.phone=phone; saveUserToStorage(currentUser);
+    updateBalanceUI(); gotoPage('lobby');
+    toast2('እንኳን ደህና መጡ '+currentUser.name);
+  }else toast2(data.message);
 }
+document.getElementById('doLoginBtn').onclick=doLogin;
 
 function demoGame(){
   currentUser={name:'Demo',phone:'demo_'+Date.now(),balance:100,refCode:'DEMO',wins:0};
-  saveUserToStorage(currentUser);
-  updateBalanceUI();
-  gotoPage('lobby');
+  saveUserToStorage(currentUser); updateBalanceUI(); gotoPage('lobby');
   toast2('የሙከራ ሂሳብ 100 ብር');
 }
-document.getElementById("demoBtn").onclick = demoGame;
+document.getElementById('demoBtn').onclick=demoGame;
 
-// ========== የተስተካከለ ሶኬት እና ክፍል አያያዝ ==========
 function connectSocket(){
   if(socket && socket.connected) return socket;
   socket = io();
-  socket.on('connect', () => console.log('Socket connected'));
-  socket.on('roomCreated', (data) => {
-    currentRoomId = data.roomId;
-    isHost = data.isHost;
-    pickerRoom = { name: data.roomName, price: data.price, color: '', count: 0 };
-    takenCards = data.takenCards || [];
-    enterCardPicker(data.takenCards);
-  });
-  socket.on('roomJoined', (data) => {
-    currentRoomId = data.roomId;
-    isHost = data.isHost;
-    pickerRoom = { name: data.roomName, price: data.price, color: '', count: 0 };
-    takenCards = data.takenCards || [];
-    enterCardPicker(data.takenCards);
-  });
-  socket.on('playersList', (players) => {
-    const plist = document.getElementById("playersList");
-    if(plist) plist.innerHTML = players.map(p => `<div class="player-badge ${p.id === socket.id ? 'me' : ''}">${p.name}</div>`).join("");
-    const glist = document.getElementById("gamePlayersList");
-    if(glist) glist.innerHTML = players.map(p => `<div class="player-badge ${p.id === socket.id ? 'me' : ''}">${p.name}</div>`).join("");
-    renderPGrid(players);
-    updateRoomPlayerCount(players.length);
-  });
-  socket.on('cardConfirmed', () => {
-    document.getElementById("startGameBtn").style.display = isHost ? "block" : "none";
-    document.getElementById("roomLobbyScreen").classList.remove("hidden");
-    document.getElementById("pickerPage").classList.add("hidden");
-  });
-  socket.on('gameStarted', () => {
-    gameActive = true;
-    calledNumbers = [];
-    bingoLinesSet.clear();
-    cardMatrix = generateCardFromNumber(selectedCard);
-    marked = Array(5).fill().map(() => Array(5).fill(false));
-    marked[2][2] = true;
-    linesCompleted = 0;
-    document.getElementById("bingoCount").innerHTML = "0/2";
-    document.getElementById("score").innerText = "0";
-    document.getElementById("calledTotal").innerText = "0";
-    document.getElementById("historyDiv").innerHTML = "";
-    renderBoard();
-    gotoPage("gamePage");
-  });
-  socket.on('numberCalled', (data) => {
-    if(!gameActive) return;
-    calledNumbers.push(data.number);
-    document.getElementById("lastLetter").innerText = data.letter;
-    document.getElementById("lastNum").innerText = data.number;
-    speak(data.letter + " " + data.number);
-    updateHistory(data.letter, data.number);
-    document.getElementById("calledTotal").innerText = data.calledCount;
-    if(autoMark){
-      let hit = false;
-      for(let col=0;col<5;col++) for(let row=0;row<5;row++) if(cardMatrix[col][row] === data.number && !marked[row][col]) { marked[row][col] = true; hit = true; }
-      if(hit) toast2("✅ " + data.letter + data.number + " በካርድህ ላይ!");
-      renderBoard();
-      checkBingo();
-    }
-  });
-  socket.on('linesUpdate', (data) => {
-    linesCompleted = data.lines;
-    document.getElementById("bingoCount").innerHTML = linesCompleted + "/2";
-    document.getElementById("score").innerText = linesCompleted * 500;
-    if(linesCompleted >= 2 && gameActive) toast2("2 መስመር ሞልቷል! ቢንጎ ተጫኑ!");
-  });
-  socket.on('gameEnded', (data) => {
-    gameActive = false;
-    if(data.winner === currentUser?.name){
-      currentUser.wins = (currentUser.wins || 0) + 1;
-      saveUserToStorage(currentUser);
-      updateBalanceUI();
-      toast2("🏆 አሸንፈዋል!");
-      canvasConfetti({particleCount:200, spread:70});
-    } else if(data.winner) toast2(data.winner + " አሸንፈዋል!");
-    else toast2("ጨዋታው አልቋል!");
-    setTimeout(()=>gotoPage("lobbyPage"), 3000);
-  });
-  socket.on('errorMessage', (msg) => toast2(typeof msg === 'string' ? msg : (msg?.message || "ስህተት")));
+  socket.on('connect',()=>console.log('Socket connected'));
+  socket.on('roomCreated',(data)=>{currentRoomId=data.roomId;isHost=data.isHost;pickerRoom={name:data.roomName,price:data.price};enterCardPicker(data.takenCards||[]);});
+  socket.on('roomJoined',(data)=>{currentRoomId=data.roomId;isHost=data.isHost;pickerRoom={name:data.roomName,price:data.price};enterCardPicker(data.takenCards||[]);});
+  socket.on('playersList',(players)=>{renderPGrid(players);updateRoomPlayerCount(players.length);});
+  socket.on('cardConfirmed',()=>{document.getElementById('startGameBtn').style.display=isHost?'block':'none';gotoPage('roomLobbyScreen');});
+  socket.on('gameStarted',()=>{gameActive=true;calledNumbers=[];bingoLinesSet.clear();cardMatrix=generateCardFromNumber(selectedCard);marked=Array(5).fill().map(()=>Array(5).fill(false));marked[2][2]=true;linesCompleted=0;document.getElementById('bingoCount').innerHTML='0/2';document.getElementById('score').innerText='0';document.getElementById('calledTotal').innerText='0';document.getElementById('historyDiv').innerHTML='';renderBoard();gotoPage('gamePage');});
+  socket.on('numberCalled',(data)=>{if(!gameActive)return;calledNumbers.push(data.number);document.getElementById('lastLetter').innerHTML=data.letter;document.getElementById('lastNum').innerHTML=data.number;speak(data.letter+' '+data.number);updateHistory(data.letter,data.number);document.getElementById('calledTotal').innerHTML=data.calledCount;if(autoMark){let hit=false;for(let col=0;col<5;col++)for(let row=0;row<5;row++)if(cardMatrix[col][row]===data.number&&!marked[row][col]){marked[row][col]=true;hit=true;}if(hit)toast2('✅ '+data.letter+data.number+' በካርድህ ላይ');renderBoard();checkBingo();}});
+  socket.on('linesUpdate',(data)=>{linesCompleted=data.lines;document.getElementById('bingoCount').innerHTML=linesCompleted+'/2';document.getElementById('score').innerText=linesCompleted*500;if(linesCompleted>=2&&gameActive)toast2('2 መስመር ሞልቷል! ቢንጎ ተጫኑ');});
+  socket.on('gameEnded',(data)=>{gameActive=false;if(data.winner===currentUser?.name){currentUser.wins=(currentUser.wins||0)+1;saveUserToStorage(currentUser);updateBalanceUI();toast2('🏆 አሸነፉ');canvasConfetti({particleCount:200,spread:70});}else if(data.winner)toast2(data.winner+' አሸንፈዋል');else toast2('ጨዋታው አልቋል');setTimeout(()=>gotoPage('lobby'),3000);});
+  socket.on('errorMessage',(msg)=>toast2(typeof msg==='string'?msg:(msg?.message||'ስህተት')));
   return socket;
 }
 
-function openRoom(price, name){
-  if(!currentUser){ toast2("መጀመሪያ ይመዝገቡ"); return; }
-  if(currentUser.balance < price){ toast2("በቂ ገንዘብ የለም"); return; }
-  const s = connectSocket();
-  // send price and roomName as expected by server
-  s.emit('createRoom', { playerName: currentUser.name, phone: currentUser.phone, price: price, roomName: name });
+function openRoom(price,name){
+  if(!currentUser){toast2('እባክዎ ይመዝገቡ');return;}
+  if(currentUser.balance<price){toast2('በቂ ገንዘብ የለም');return;}
+  const s=connectSocket();
+  s.emit('createRoom',{playerName:currentUser.name,phone:currentUser.phone,price:price,roomName:name});
 }
 
 function enterCardPicker(taken){
-  selectedCard = null;
-  document.getElementById("pickerRoom").innerHTML = pickerRoom.name + ' — ' + pickerRoom.price + ' ብር';
-  document.getElementById("pickerPrize").innerHTML = '0 ብር';
-  document.getElementById("takenCount").innerHTML = taken.length + ' ተወስደዋል';
-  takenCards = taken;
+  selectedCard=null; takenCards=taken;
+  document.getElementById('pickerRoom').innerHTML=pickerRoom.name+' — '+pickerRoom.price+' ብር';
+  document.getElementById('takenCount').innerHTML=taken.length+' ተወስደዋል';
   renderCardsGrid('');
-  gotoPage("picker");
+  gotoPage('picker');
 }
 
 function renderCardsGrid(filter){
-  const g = document.getElementById('cardsGrid');
-  g.innerHTML = '';
+  const g=document.getElementById('cardsGrid'); g.innerHTML='';
   for(let i=1;i<=400;i++){
-    if(filter && !String(i).startsWith(filter)) continue;
-    const taken = takenCards.includes(i);
-    const isSel = (selectedCard === i);
-    const el = document.createElement('div');
-    el.className = 'cn' + (taken ? ' taken' : '') + (isSel ? ' sel' : '');
-    el.textContent = i;
-    if(!taken) el.onclick = () => selectCard(i);
+    if(filter&&!String(i).startsWith(filter)) continue;
+    const taken=takenCards.includes(i);
+    const el=document.createElement('div');
+    el.className='cn'+(taken?' taken':'');
+    el.textContent=i;
+    if(!taken) el.onclick=()=>{selectedCard=i;document.getElementById('selectedCardNum').innerText='#'+i;document.querySelectorAll('.cn').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');};
     g.appendChild(el);
   }
 }
-
-function selectCard(n){
-  selectedCard = n;
-  document.getElementById("selectedCardNum").innerText = '#' + n;
-  document.getElementById("pickerJoinBtn").style.opacity = '1';
-  document.getElementById("pickerJoinBtn").style.pointerEvents = 'auto';
-  renderCardsGrid(document.getElementById('searchCard').value || '');
-  toast2('✅ ካርቴላ #' + n + ' ተመርጧል!', 1500);
-}
-
-function filterCards(val){ renderCardsGrid(val||''); }
+function filterCards(val){renderCardsGrid(val||'');}
+document.getElementById('searchCard').addEventListener('input',(e)=>filterCards(e.target.value));
+document.getElementById('confirmPick').onclick=joinWithCard;
 
 function joinWithCard(){
-  if(!selectedCard){ toast2('ካርቴላ ይምረጡ'); return; }
-  if(currentUser && currentUser.balance >= pickerRoom.price){
-    currentUser.balance -= pickerRoom.price;
+  if(!selectedCard){toast2('ካርቴላ ይምረጡ');return;}
+  if(currentUser.balance>=pickerRoom.price){
+    currentUser.balance-=pickerRoom.price;
     saveUserToStorage(currentUser);
     updateBalanceUI();
-    if(!socket) connectSocket();
-    socket.emit('selectCard', { roomId: currentRoomId, cardNumber: selectedCard });
+    if(!socket)connectSocket();
+    socket.emit('selectCard',{roomId:currentRoomId,cardNumber:selectedCard});
     gotoPage('room');
-  } else {
-    document.getElementById('payModT').textContent = '💳 ካርቴላ #' + selectedCard + ' — ' + pickerRoom.name;
-    document.getElementById('payAmt').textContent = pickerRoom.price + ' ብር';
+  }else{
+    document.getElementById('payModT').innerHTML='💳 ካርቴላ #'+selectedCard+' — '+pickerRoom.name;
+    document.getElementById('payAmt').innerHTML=pickerRoom.price+' ብር';
     showMod('payMod');
   }
 }
-
-function confirmPay(){
-  closeMod('payMod');
-  if(!socket) connectSocket();
-  setTimeout(()=>{
-    socket.emit('selectCard', { roomId: currentRoomId, cardNumber: selectedCard });
-  }, 100);
-  gotoPage('room');
-}
+function confirmPay(){closeMod('payMod');if(!socket)connectSocket();setTimeout(()=>{socket.emit('selectCard',{roomId:currentRoomId,cardNumber:selectedCard});},100);gotoPage('room');}
 
 function renderPGrid(players){
-  const grid = document.getElementById('pgGrid');
-  if(!grid) return;
-  grid.innerHTML = '';
-  if(players && players.length > 0){
-    players.slice(0,20).forEach(p => {
-      const slot = document.createElement('div');
-      slot.className = 'pg-slot' + (p.id === socket?.id ? ' me' : ' in');
-      slot.innerHTML = `<span>${p.name.charAt(0)}</span><div class="pg-name">${p.name.split(' ')[0]}</div>`;
+  const grid=document.getElementById('pgGrid'); if(!grid) return; grid.innerHTML='';
+  if(players&&players.length>0){
+    players.slice(0,20).forEach(p=>{
+      const slot=document.createElement('div');
+      slot.className='pg-slot'+(p.id===socket?.id?' me':' in');
+      slot.innerHTML='<span>'+p.name.charAt(0)+'</span><div class="pg-name">'+p.name.split(' ')[0]+'</div>';
       grid.appendChild(slot);
     });
   }
 }
-
-function updateRoomPlayerCount(count){ document.getElementById('rPCount').innerText = count + '/100'; }
-
-function startGameFromServer(){
-  gameActive = true;
-  calledNumbers = [];
-  bingoLinesSet.clear();
-  cardMatrix = generateCardFromNumber(selectedCard);
-  marked = Array(5).fill().map(()=>Array(5).fill(false));
-  marked[2][2] = true;
-  linesCompleted = 0;
-  updateScoreUI();
-  renderCard();
-  gotoPage('game');
-}
+function updateRoomPlayerCount(count){document.getElementById('rPCount').innerHTML=count+'/100';}
 
 function generateCardFromNumber(cardNum){
-  const rng = seededRng(getDailySeed() * 997 + cardNum * 31);
-  const card = [];
+  const rng=seededRng(getDailySeed()*997+cardNum*31);
+  const card=[];
   [[1,15],[16,30],[31,45],[46,60],[61,75]].forEach(([mn,mx])=>{
-    const nums = [];
-    const range = [];
+    const nums=[]; const range=[];
     for(let i=mn;i<=mx;i++) range.push(i);
-    while(nums.length < 5){
-      const idx = Math.floor(rng() * range.length);
-      if(!nums.includes(range[idx])) nums.push(range[idx]);
-    }
+    while(nums.length<5){const idx=Math.floor(rng()*range.length);nums.push(range[idx]);range.splice(idx,1);}
     card.push(nums);
   });
   return card;
 }
-
-function seededRng(seed){ let s=seed; return ()=>{ s=(s*1664525+1013904223)&0xFFFFFFFF; return (s>>>0)/0xFFFFFFFF; }; }
-function getDailySeed(){ const d=new Date(); return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); }
-
-function renderCard(){
-  const g = document.getElementById('cardGrid');
-  g.innerHTML = '';
-  for(let row=0;row<5;row++){
-    for(let col=0;col<5;col++){
-      const isFree = (row===2 && col===2);
-      const num = isFree ? 'FREE' : cardMatrix[col][row];
-      const isMarked = marked[row][col];
-      const isWin = bingoLinesSet.has(`r${row}`) || bingoLinesSet.has(`c${col}`) || (row===col && bingoLinesSet.has('d0')) || (row+col===4 && bingoLinesSet.has('d1'));
-      const cell = document.createElement('div');
-      cell.className = 'cell' + (isMarked ? ' marked' : '') + (isFree ? ' free' : '') + (isWin ? ' wl' : '');
-      cell.textContent = num;
-      if(!isFree && !autoMark) cell.onclick = () => manualMark(row,col);
-      g.appendChild(cell);
-    }
-  }
-}
-
-function manualMark(row,col){
-  const num = cardMatrix[col][row];
-  if(!calledNumbers.includes(num)){ toast2('ቁጥሩ ገና አልወጣም'); return; }
-  marked[row][col] = !marked[row][col];
-  if(socket) socket.emit('markNumber', { roomId: currentRoomId, row, col, number: num });
-  renderCard();
-}
-
-function handleNumberCalled(data){
-  if(!gameActive) return;
-  calledNumbers.push(data.number);
-  document.getElementById('calledLetter').innerText = data.letter;
-  document.getElementById('calledNum').innerText = data.number;
-  speak(data.letter + ' ' + data.number);
-  updateHistory(data.letter, data.number);
-  document.getElementById('calledTotal').innerText = data.calledCount;
-  if(autoMark){
-    let hit = false;
-    for(let col=0;col<5;col++) for(let row=0;row<5;row++) if(cardMatrix[col][row] === data.number && !marked[row][col]){ marked[row][col]=true; hit=true; }
-    if(hit) toast2('✅ '+data.letter+data.number+' በካርድህ ላይ!');
-    renderBoard();
-    checkBingo();
-  }
-}
+function seededRng(seed){let s=seed;return()=>{s=(s*1664525+1013904223)&0xFFFFFFFF;return(s>>>0)/0xFFFFFFFF;};}
+function getDailySeed(){const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();}
 
 function renderBoard(){
-  const bd = document.getElementById("bingoBoard");
-  if(!bd || !cardMatrix.length) return;
-  bd.innerHTML = "";
+  const bd=document.getElementById('bingoBoard'); if(!bd||!cardMatrix.length) return; bd.innerHTML='';
   for(let row=0;row<5;row++){
     for(let col=0;col<5;col++){
-      const isFree = (row===2 && col===2);
-      const num = isFree ? "FREE" : cardMatrix[col][row];
-      const isMarked = marked[row][col];
-      let isWin = false;
+      const isFree=(row===2&&col===2);
+      const num=isFree?'FREE':cardMatrix[col][row];
+      const isMarked=marked[row][col];
+      let isWin=false;
       for(let l of bingoLinesSet){
-        if(l === 'r'+row || l === 'c'+col || (l === 'd0' && row===col) || (l === 'd1' && row+col===4)) isWin = true;
+        if(l==='r'+row||l==='c'+col||(l==='d0'&&row===col)||(l==='d1'&&row+col===4)) isWin=true;
       }
-      const cell = document.createElement("div");
-      cell.className = "cell" + (isMarked ? " marked" : "") + (isFree ? " free" : "") + (isWin ? " win" : "");
-      cell.innerText = num;
-      if(!isFree && !autoMark){
-        cell.onclick = () => {
-          if(calledNumbers.includes(num)) socket.emit('markNumber',{roomId:currentRoomId,row,col,number:num});
-          else toast2("ቁጥሩ ገና አልወጣም");
-        };
-      }
+      const cell=document.createElement('div');
+      cell.className='cell'+(isMarked?' marked':'')+(isFree?' free':'')+(isWin?' win':'');
+      cell.innerText=num;
+      if(!isFree&&!autoMark) cell.onclick=()=>{if(calledNumbers.includes(num)) socket.emit('markNumber',{roomId:currentRoomId,row,col,number:num});else toast2('ቁጥሩ ገና አልወጣም');};
       bd.appendChild(cell);
     }
   }
 }
-
+function renderCard(){renderBoard();}
 function updateHistory(letter,num){
-  let h = document.getElementById("historyDiv");
-  let item = document.createElement("div"); item.className = "hist-item"; item.innerText = letter+num;
+  let h=document.getElementById('historyDiv');
+  let item=document.createElement('div'); item.className='hist-item'; item.innerText=letter+num;
   h.prepend(item);
-  if(h.children.length > 12) h.removeChild(h.lastChild);
-  if(h.children[1]) h.children[1].classList.remove("latest");
-  item.classList.add("latest");
+  if(h.children.length>12) h.removeChild(h.lastChild);
+  if(h.children[1]) h.children[1].classList.remove('latest');
+  item.classList.add('latest');
 }
-
 function checkBingo(){
-  let newLine = false;
+  let newLine=false;
   for(let i=0;i<5;i++){
-    let rowComplete=true, colComplete=true;
+    let rowComplete=true,colComplete=true;
     for(let j=0;j<5;j++){
       if(!marked[i][j]) rowComplete=false;
       if(!marked[j][i]) colComplete=false;
     }
-    if(rowComplete && !bingoLinesSet.has('r'+i)){ bingoLinesSet.add('r'+i); newLine=true; }
-    if(colComplete && !bingoLinesSet.has('c'+i)){ bingoLinesSet.add('c'+i); newLine=true; }
+    if(rowComplete&&!bingoLinesSet.has('r'+i)){bingoLinesSet.add('r'+i);newLine=true;}
+    if(colComplete&&!bingoLinesSet.has('c'+i)){bingoLinesSet.add('c'+i);newLine=true;}
   }
-  let d1=true, d2=true;
+  let d1=true,d2=true;
   for(let i=0;i<5;i++){
     if(!marked[i][i]) d1=false;
     if(!marked[i][4-i]) d2=false;
   }
-  if(d1 && !bingoLinesSet.has('d0')){ bingoLinesSet.add('d0'); newLine=true; }
-  if(d2 && !bingoLinesSet.has('d1')){ bingoLinesSet.add('d1'); newLine=true; }
+  if(d1&&!bingoLinesSet.has('d0')){bingoLinesSet.add('d0');newLine=true;}
+  if(d2&&!bingoLinesSet.has('d1')){bingoLinesSet.add('d1');newLine=true;}
   if(newLine){
-    let total = bingoLinesSet.size;
-    document.getElementById("bingoCount").innerHTML = total+"/2";
-    document.getElementById("score").innerText = total*500;
+    let total=bingoLinesSet.size;
+    document.getElementById('bingoCount').innerHTML=total+'/2';
+    document.getElementById('score').innerText=total*500;
     renderBoard();
-    if(total >= 2 && gameActive){
-      gameActive = false;
-      if(socket) socket.emit('claimBingo', { roomId: currentRoomId });
-      document.getElementById("winPrizeAmount").innerHTML = "🎉 አሸነፉ!";
-      showMod("winModal");
-      speak("ቢንጎ! አሸነፉ!");
-      canvasConfetti({ particleCount: 200, spread: 70 });
+    if(total>=2&&gameActive){
+      gameActive=false;
+      if(socket) socket.emit('claimBingo',{roomId:currentRoomId});
+      document.getElementById('winPrizeAmount').innerHTML='🎉 አሸነፉ';
+      showMod('winModal');
+      speak('ቢንጎ! አሸነፉ');
+      canvasConfetti({particleCount:200,spread:70});
     }
   }
 }
+function callBingo(){if(gameActive) checkBingo();}
+document.getElementById('startGameBtn').onclick=()=>{if(isHost&&currentRoomId&&socket)socket.emit('startGame',{roomId:currentRoomId});};
+document.getElementById('claimBingoBtn').onclick=callBingo;
+document.getElementById('leaveLobbyBtn').onclick=()=>{if(socket)socket.emit('leaveRoom',{roomId:currentRoomId});window.location.reload();};
+document.getElementById('leaveGameBtn').onclick=()=>{if(socket)socket.emit('leaveRoom',{roomId:currentRoomId});window.location.reload();};
+document.getElementById('closeWinBtn').onclick=()=>{closeMod('winModal');gotoPage('lobby');};
 
-function updateScoreUI(){
-  document.getElementById('gScore').textContent = linesCompleted * 500;
-  document.getElementById('gBingo').textContent = linesCompleted;
-  document.getElementById('gCalled').textContent = calledNumbers.length + '/75';
-}
-
-function callBingo(){
-  if(gameActive && socket) socket.emit('claimBingo', { roomId: currentRoomId });
-}
-
+// ዲፖዚት / ዊዝድሮ
 async function requestDeposit(){
-  if(!currentUser){ toast2('መጀመሪያ ይመዝገቡ'); return; }
-  let amt = parseFloat(prompt("ዲፖዚት መጠን (ብር) ከ100 እስከ 10,000\nቴሌብር 0953025980 (Seid)", "100"));
-  if(amt && !isNaN(amt)){
-    let val = parseFloat(amt);
-    if(val>=100 && val<=10000){
-      let res = await fetch('/api/deposit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:currentUser.phone,amount:val,reference:"MANUAL_"+Date.now()})});
-      let data = await res.json();
-      if(data.success){ currentUser.balance = data.newBalance; saveUserToStorage(currentUser); updateBalanceUI(); toast2("+"+val+" ብር ተጨምሯል"); } else toast2(data.message);
-    } else toast2("ከ100-10,000 ብር ብቻ");
+  if(!currentUser){toast2('መጀመሪያ ይመዝገቡ');return;}
+  let amt=parseFloat(prompt('ዲፖዚት መጠን (ብር) ከ100 እስከ 10,000\nቴሌብር 0953025980 (Seid)','100'));
+  if(amt&&!isNaN(amt)){
+    let val=parseFloat(amt);
+    if(val>=100&&val<=10000){
+      let res=await fetch('/api/deposit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:currentUser.phone,amount:val,reference:'MANUAL_'+Date.now()})});
+      let data=await res.json();
+      if(data.success){currentUser.balance=data.newBalance;saveUserToStorage(currentUser);updateBalanceUI();toast2('+'+val+' ብር ተጨምሯል');}else toast2(data.message);
+    }else toast2('ከ100-10,000 ብር ብቻ');
   }
 }
-document.getElementById("depositSim").onclick = requestDeposit;
-
+document.getElementById('depositSim').onclick=requestDeposit;
 async function requestWithdraw(){
-  if(!currentUser){ toast2('መጀመሪያ ይመዝገቡ'); return; }
-  let amt = parseFloat(prompt("ማውጣት የሚፈልጉት መጠን (ብር)", "100"));
-  if(amt && !isNaN(amt)){
-    let val = parseFloat(amt);
-    if(val>=100 && val<=10000){
-      if(currentUser.balance >= val){
-        currentUser.balance -= val;
-        saveUserToStorage(currentUser);
-        updateBalanceUI();
-        toast2("-"+val+" ብር ወጥቷል");
-      } else toast2("በቂ ገንዘብ የለም");
-    } else toast2("ከ100-10,000 ብር ብቻ");
+  if(!currentUser){toast2('መጀመሪያ ይመዝገቡ');return;}
+  let amt=parseFloat(prompt('ማውጣት የሚፈልጉት መጠን (ብር)','100'));
+  if(amt&&!isNaN(amt)){
+    let val=parseFloat(amt);
+    if(val>=100&&val<=10000){
+      if(currentUser.balance>=val){
+        currentUser.balance-=val; saveUserToStorage(currentUser); updateBalanceUI(); toast2('-'+val+' ብር ወጥቷል');
+      }else toast2('በቂ ገንዘብ የለም');
+    }else toast2('ከ100-10,000 ብር ብቻ');
   }
 }
-document.getElementById("withdrawSim").onclick = requestWithdraw;
+document.getElementById('withdrawSim').onclick=requestWithdraw;
 
+// አስተዳዳሪ ፓነል
 async function adminLogin(){
-  const key = document.getElementById('adminKeyInput').value;
-  if(key !== '8084877485'){ toast2('የተሳሳተ ቁልፍ'); return; }
-  const res = await fetch('/api/pending-deposits?adminKey=8084877485');
-  const data = await res.json();
+  const key=document.getElementById('adminKeyInput').value;
+  if(key!=='8084877485'){toast2('የተሳሳተ ቁልፍ');return;}
+  const res=await fetch('/api/pending-deposits?adminKey=8084877485');
+  const data=await res.json();
   if(data.success){
-    const cont = document.getElementById('pendingDepositsList');
-    cont.innerHTML = '<h4>በመጠባበቅ ላይ ያሉ ዲፖዚቶች:</h4>';
-    data.deposits.forEach(d => {
-      const div = document.createElement('div');
-      div.className = 'glass';
-      div.style.padding = '8px';
-      div.style.margin = '8px 0';
-      div.innerHTML = `<div>📞 ${d.phone}</div><div>💰 ${d.amount} ብር</div><div>🔢 ${d.reference}</div><button class="btn" onclick='verifyDeposit("${d.id}")'>✅ አረጋግጥ</button>`;
+    const cont=document.getElementById('pendingDepositsList');
+    cont.innerHTML='<h4>በመጠባበቅ ላይ ያሉ ዲፖዚቶች:</h4>';
+    data.deposits.forEach(d=>{
+      const div=document.createElement('div'); div.className='glass'; div.style.padding='8px'; div.style.margin='8px 0';
+      div.innerHTML='<div>📞 '+d.phone+'</div><div>💰 '+d.amount+' ብር</div><div>🔢 '+d.reference+'</div><button class="btn" onclick=\'verifyDeposit("'+d.id+'")\'>✅ አረጋግጥ</button>';
       cont.appendChild(div);
     });
-  } else toast2('አልተገኙም');
+  }else toast2('አልተገኙም');
 }
-document.getElementById('adminLoginBtn').onclick = adminLogin;
-
-window.verifyDeposit = async function(id){
-  const res = await fetch('/api/verify-deposit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({depositId:id,adminKey:'8084877485'})});
-  const data = await res.json();
+window.verifyDeposit=async function(id){
+  const res=await fetch('/api/verify-deposit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({depositId:id,adminKey:'8084877485'})});
+  const data=await res.json();
   if(data.success){
     toast2(data.message);
-    if(currentUser && currentUser.phone === data.phone){
-      const u = await fetch(`/api/user/${currentUser.phone}`);
-      const uData = await u.json();
-      if(uData.success){ currentUser.balance = uData.user.balance; saveUserToStorage(currentUser); updateBalanceUI(); }
+    if(currentUser&&currentUser.phone===data.phone){
+      const u=await fetch('/api/user/'+currentUser.phone);
+      const uData=await u.json();
+      if(uData.success){currentUser.balance=uData.user.balance;saveUserToStorage(currentUser);updateBalanceUI();}
     }
     document.getElementById('adminLoginBtn').click();
-  } else toast2(data.message);
+  }else toast2(data.message);
 };
+document.getElementById('adminLoginBtn').onclick=adminLogin;
 
-// Floating emojis
-(function(){
-  const w = document.getElementById('emojiBg');
-  const ems = ['⭐','🔥','💎','🎯','👑','🌟','✨','🎲','💰','🏆','🎁','🌙','💫','⚡','🃏'];
-  for(let i=0;i<20;i++){
-    const el = document.createElement('div'); el.className = 'efloat';
-    el.textContent = ems[Math.floor(Math.random()*ems.length)];
-    el.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;font-size:${Math.random()*14+8}px;opacity:${Math.random()*0.1+0.03};animation-duration:${Math.random()*14+8}s;animation-delay:${Math.random()*9}s;`;
-    w.appendChild(el);
-  }
-})();
-
-document.getElementById("startGameBtn").onclick = () => { if(isHost && currentRoomId && socket) socket.emit('startGame',{roomId:currentRoomId}); };
-document.getElementById("claimBingoBtn").onclick = () => { if(gameActive) checkBingo(); };
-document.getElementById("leaveLobbyBtn").onclick = () => { if(socket) socket.emit('leaveRoom',{roomId:currentRoomId}); window.location.reload(); };
-document.getElementById("leaveGameBtn").onclick = () => { if(socket) socket.emit('leaveRoom',{roomId:currentRoomId}); window.location.reload(); };
-document.getElementById("closeWinBtn").onclick = () => { closeMod("winModal"); gotoPage("lobbyPage"); };
-document.querySelectorAll(".tab").forEach(tab => { tab.onclick = () => gotoPage(tab.getAttribute("data-page")); });
-document.getElementById('searchCard').addEventListener('input', (e) => filterCards(e.target.value));
-document.getElementById('confirmPick').onclick = joinWithCard;
-
-if(tryAutoLogin()){} else gotoPage('splashPage');
-if(window.Telegram && Telegram.WebApp){ Telegram.WebApp.ready(); Telegram.WebApp.expand(); let u = Telegram.WebApp.initDataUnsafe?.user; if(u && u.first_name) document.getElementById('regName').value = u.first_name + (u.last_name ? " " + u.last_name : ""); }
-setTimeout(()=>{ if(window.speechSynthesis) window.speechSynthesis.getVoices(); }, 500);
+if(loadUserFromStorage()){updateBalanceUI();gotoPage('lobby');}else gotoPage('splash');
+if(window.Telegram&&Telegram.WebApp){Telegram.WebApp.ready();Telegram.WebApp.expand();}
+setTimeout(()=>{if(window.speechSynthesis)window.speechSynthesis.getVoices();},500);
 </script>
 </body>
 </html>
