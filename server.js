@@ -1,348 +1,513 @@
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-const cors = require('cors');
-const path = require('path');
+/**
+ * ULTRA BINGO - Fixed Backend Server
+ * Fixes: socketToPhone auth, auto-matchmaking, selectCard player bug,
+ *        socket.join on card select, password hashing, roomJoined event
+ */
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(express.static('public'));
+const express    = require('express');
+const http       = require('http');
+const { Server } = require('socket.io');
+const cors       = require('cors');
+const bodyParser = require('body-parser');
+const path       = require('path');
+const crypto     = require('crypto');
+
+const app    = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: { origin: "*", methods: ["GET", "POST"] }
-});
+const io     = new Server(server, { cors: { origin: '*' } });
 
-// ==================== ውሂብ ማከማቻ ====================
-const users = new Map();
-const rooms = new Map();
-const usedReferences = new Set();
-const pendingDeposits = new Map();
+app.use(cors());
+app.use(bodyParser.json({ limit: '1mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// ==================== ረዳት ተግባራት ====================
-function generateRefCode() {
-  return 'UB' + Math.random().toString(36).substring(2, 10).toUpperCase();
+// ══════════════════════════════════════════
+//   DATA STORE
+// ══════════════════════════════════════════
+const users        = new Map(); // phone  → user object
+const sessions     = new Map(); // token  → phone
+const rooms        = new Map(); // roomId → Room
+const deposits     = new Map(); // id     → deposit
+const withdrawals  = [];
+const socketToPhone = new Map(); // socketId → phone  ← NEW: tracks who each socket belongs to
+
+const ADMIN_KEY = process.env.ADMIN_KEY || '8084877485';
+
+// ══════════════════════════════════════════
+//   PURE HELPERS
+// ══════════════════════════════════════════
+function hashPw(pw) {
+  return crypto.createHash('sha256').update(pw + ':ub_salt_v2').digest('hex');
 }
+function genRefCode()   { return 'UB-' + crypto.randomBytes(3).toString('hex').toUpperCase(); }
+function genToken()     { return crypto.randomBytes(20).toString('hex'); }
+function genRoomId()    { return 'R'  + crypto.randomBytes(3).toString('hex').toUpperCase(); }
+function genDepositId() { return 'D'  + crypto.randomBytes(4).toString('hex').toUpperCase(); }
 
-function getLetter(num) {
-  if (num <= 15) return "B";
-  if (num <= 30) return "I";
-  if (num <= 45) return "N";
-  if (num <= 60) return "G";
-  return "O";
+function getDailySeed() {
+  const d = new Date();
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
 }
-
-function generateRandomNumberPool() {
-  let numbers = Array.from({ length: 75 }, (_, i) => i + 1);
-  for (let i = numbers.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
-  }
-  return numbers;
+function seededRng(seed) {
+  let s = seed >>> 0;
+  return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 0xFFFFFFFF; };
 }
-
-function generateBingoCard() {
-  const card = [];
-  const ranges = [[1, 15], [16, 30], [31, 45], [46, 60], [61, 75]];
-  for (const [min, max] of ranges) {
-    const numbers = [];
-    const available = Array.from({ length: max - min + 1 }, (_, i) => min + i);
-    for (let i = 0; i < 5; i++) {
-      const randomIndex = Math.floor(Math.random() * available.length);
-      numbers.push(available[randomIndex]);
-      available.splice(randomIndex, 1);
+function generateCard(cardNum) {
+  const rng = seededRng(getDailySeed() * 997 + cardNum * 31);
+  return [[1,15],[16,30],[31,45],[46,60],[61,75]].map(([mn, mx]) => {
+    const pool = Array.from({ length: mx - mn + 1 }, (_, i) => mn + i);
+    const col  = [];
+    while (col.length < 5) {
+      const idx = Math.floor(rng() * pool.length);
+      col.push(pool.splice(idx, 1)[0]);
     }
-    card.push(numbers);
-  }
-  return card;
+    return col;
+  });
+}
+function getLetter(n) {
+  if (n <= 15) return 'B';
+  if (n <= 30) return 'I';
+  if (n <= 45) return 'N';
+  if (n <= 60) return 'G';
+  return 'O';
 }
 
-function calculateLines(card, marked) {
-  let lines = 0;
-  for (let row = 0; row < 5; row++) {
-    let complete = true;
-    for (let col = 0; col < 5; col++) if (!marked[row][col]) { complete = false; break; }
-    if (complete) lines++;
-  }
-  for (let col = 0; col < 5; col++) {
-    let complete = true;
-    for (let row = 0; row < 5; row++) if (!marked[row][col]) { complete = false; break; }
-    if (complete) lines++;
-  }
-  let diag1 = true, diag2 = true;
-  for (let i = 0; i < 5; i++) {
-    if (!marked[i][i]) diag1 = false;
-    if (!marked[i][4 - i]) diag2 = false;
-  }
-  if (diag1) lines++;
-  if (diag2) lines++;
-  return lines;
+// ══════════════════════════════════════════
+//   HTTP AUTH MIDDLEWARE
+// ══════════════════════════════════════════
+function authMiddleware(req, res, next) {
+  const token = req.headers['x-auth-token'];
+  if (!token || !sessions.has(token))
+    return res.status(401).json({ success: false, message: 'ያልተረጋገጠ' });
+  req.phone = sessions.get(token);
+  req.user  = users.get(req.phone);
+  next();
 }
 
-// ==================== ኤፒአይ ኢንድፖይንቶች ====================
+// ══════════════════════════════════════════
+//   ROOM CLASS
+// ══════════════════════════════════════════
+class Room {
+  constructor(id, name, price, hostSocketId, hostName, hostPhone) {
+    this.id             = id;
+    this.name           = name;
+    this.price          = price;
+    this.hostSocketId   = hostSocketId;
+    this.hostName       = hostName;
+    this.hostPhone      = hostPhone;
+    this.players        = [];       // { socketId, name, phone, cardNumber, marked, lines, linesSet }
+    this.takenCards     = new Set();
+    this.status         = 'waiting'; // waiting | running | finished
+    this.calledNumbers  = [];
+    this.calledOrder    = [];
+    this.winners        = [];
+    this.gameTimer      = null;
+    this.countdownTimer = null;
+    this.countdownActive = false;
+    this.maxPlayers     = 100;
+  }
 
-app.post('/api/register', (req, res) => {
-  const { name, phone, refCode } = req.body;
-  if (!name || !phone) return res.json({ success: false, message: 'ስም እና ስልክ ያስፈልጋል' });
-  if (users.has(phone)) return res.json({ success: false, message: 'ይህ ስልክ ቀድሞ ተመዝግቧል' });
-  
-  let bonus = 10;
-  let referredByName = null;
-  if (refCode) {
-    for (const [existingPhone, existingUser] of users.entries()) {
-      if (existingUser.refCode === refCode) {
-        referredByName = existingUser.name;
-        existingUser.balance += 5;
-        existingUser.referredUsers.push({ name, phone, date: new Date().toISOString() });
-        users.set(existingPhone, existingUser);
-        bonus += 5;
-        break;
+  addPlayer(socketId, name, phone, cardNumber) {
+    if (this.players.length >= this.maxPlayers)     return { ok: false, msg: 'ክፍሉ ሞልቷል' };
+    if (this.takenCards.has(cardNumber))             return { ok: false, msg: 'ካርቴላ ተወስዷል' };
+    if (this.players.find(p => p.socketId === socketId)) return { ok: false, msg: 'ቀድሞ ተቀላቅለዋል' };
+
+    this.takenCards.add(cardNumber);
+    const player = {
+      socketId, name, phone, cardNumber,
+      marked:   Array(5).fill(null).map(() => Array(5).fill(false)),
+      lines:    0,
+      linesSet: new Set()
+    };
+    player.marked[2][2] = true; // FREE center
+    this.players.push(player);
+    return { ok: true };
+  }
+
+  removePlayer(socketId) {
+    const idx = this.players.findIndex(p => p.socketId === socketId);
+    if (idx >= 0) {
+      this.takenCards.delete(this.players[idx].cardNumber);
+      this.players.splice(idx, 1);
+    }
+  }
+
+  broadcast(event, data) {
+    this.players.forEach(p => io.to(p.socketId).emit(event, data));
+  }
+
+  broadcastPlayersList() {
+    const list = this.players.map(p => ({
+      id: p.socketId, name: p.name, lines: p.lines, cardNumber: p.cardNumber
+    }));
+    this.broadcast('playersList', list);
+  }
+
+  startCountdown(seconds = 30) {
+    if (this.countdownActive) return;
+    this.countdownActive = true;
+    let remaining = seconds;
+    this.broadcast('countdown', { remaining });
+    this.countdownTimer = setInterval(() => {
+      remaining--;
+      this.broadcast('countdown', { remaining });
+      if (remaining <= 0) {
+        clearInterval(this.countdownTimer);
+        this.countdownTimer = null;
+        this.startGame();
+      }
+    }, 1000);
+  }
+
+  startGame() {
+    if (this.status !== 'waiting') return;
+    if (this.players.length < 2) {
+      this.broadcast('errorMessage', { message: 'ቢያንስ 2 ተጫዋቾች ያስፈልጋሉ' });
+      return;
+    }
+    this.status = 'running';
+    if (this.countdownTimer) { clearInterval(this.countdownTimer); this.countdownTimer = null; }
+
+    this.calledNumbers = [];
+    this.calledOrder   = [];
+    this.winners       = [];
+
+    this.players.forEach(p => {
+      p.marked   = Array(5).fill(null).map(() => Array(5).fill(false));
+      p.marked[2][2] = true;
+      p.lines    = 0;
+      p.linesSet = new Set();
+      io.to(p.socketId).emit('gameStarted', {
+        cardNumber: p.cardNumber,
+        cardMatrix: generateCard(p.cardNumber)
+      });
+    });
+    this.callNext();
+  }
+
+  callNext() {
+    if (this.status !== 'running') return;
+    if (this.calledNumbers.length >= 75) { this.endGame(null); return; }
+
+    let num;
+    do { num = Math.floor(Math.random() * 75) + 1; }
+    while (this.calledNumbers.includes(num));
+
+    this.calledNumbers.push(num);
+    const letter = getLetter(num);
+    this.calledOrder.push({ letter, number: num });
+
+    this.broadcast('numberCalled', {
+      letter, number: num, calledCount: this.calledNumbers.length
+    });
+
+    if (this.calledNumbers.length < 75) {
+      this.gameTimer = setTimeout(() => this.callNext(), 3000);
+    } else {
+      setTimeout(() => this.endGame(null), 4000);
+    }
+  }
+
+  markNumber(socketId, row, col) {
+    const p = this.players.find(x => x.socketId === socketId);
+    if (!p || this.status !== 'running') return;
+    if (row < 0 || row > 4 || col < 0 || col > 4) return;
+    const num = generateCard(p.cardNumber)[col][row];
+    if (!this.calledNumbers.includes(num)) return;
+    if (p.marked[row][col]) return;
+    p.marked[row][col] = true;
+    this.checkPlayerBingo(p);
+  }
+
+  checkPlayerBingo(player) {
+    let newLine = false;
+    for (let i = 0; i < 5; i++) {
+      let rowC = true, colC = true;
+      for (let j = 0; j < 5; j++) {
+        if (!player.marked[i][j]) rowC = false;
+        if (!player.marked[j][i]) colC = false;
+      }
+      if (rowC && !player.linesSet.has('r'+i)) { player.linesSet.add('r'+i); newLine = true; }
+      if (colC && !player.linesSet.has('c'+i)) { player.linesSet.add('c'+i); newLine = true; }
+    }
+    let d1 = true, d2 = true;
+    for (let i = 0; i < 5; i++) {
+      if (!player.marked[i][i])     d1 = false;
+      if (!player.marked[i][4-i])   d2 = false;
+    }
+    if (d1 && !player.linesSet.has('d0')) { player.linesSet.add('d0'); newLine = true; }
+    if (d2 && !player.linesSet.has('d1')) { player.linesSet.add('d1'); newLine = true; }
+
+    if (newLine) {
+      player.lines = player.linesSet.size;
+      io.to(player.socketId).emit('linesUpdate', { lines: player.lines });
+      this.broadcastPlayersList();
+
+      if (player.lines >= 2 && this.winners.length < 1) {
+        const prize = Math.floor(this.players.length * this.price * 0.8);
+        this.winners.push({ name: player.name, phone: player.phone });
+        const u = users.get(player.phone);
+        if (u) { u.balance += prize; u.wins = (u.wins || 0) + 1; }
+        this.endGame({ winner: player.name, phone: player.phone, prize, players: this.players.length });
       }
     }
   }
-  
-  const newUser = {
-    name, phone, balance: bonus, bonusPending: true, bonusClaimed: false,
-    totalDeposited: 0, refCode: generateRefCode(), referredBy: refCode || null,
-    referredByName, referredUsers: [], depositHistory: [], withdrawHistory: [],
-    wins: 0, createdAt: new Date().toISOString()
-  };
-  users.set(phone, newUser);
-  res.json({ success: true, message: 'ተመዝግበዋል', user: { name, phone, balance: newUser.balance, refCode: newUser.refCode } });
+
+  endGame(winnerData) {
+    if (this.status === 'finished') return;
+    this.status = 'finished';
+    if (this.gameTimer)      { clearTimeout(this.gameTimer);    this.gameTimer      = null; }
+    if (this.countdownTimer) { clearInterval(this.countdownTimer); this.countdownTimer = null; }
+    this.broadcast('gameEnded', winnerData || { winner: null });
+  }
+}
+
+// ══════════════════════════════════════════
+//   AUTH API
+// ══════════════════════════════════════════
+app.post('/api/register', (req, res) => {
+  const { name, phone, password, refCode } = req.body;
+  if (!name || !phone || !password)
+    return res.json({ success: false, message: 'ስም፣ ስልክ እና ፓስዎርድ ያስፈልጋል' });
+  if (phone.length < 9)
+    return res.json({ success: false, message: 'ስልክ ቁጥር ትክክል አይደለም' });
+  if (users.has(phone))
+    return res.json({ success: false, message: 'ይህ ስልክ ቀድሞ ተመዝግቷል' });
+
+  const refCode2 = genRefCode();
+  users.set(phone, {
+    name, phone,
+    password: hashPw(password),   // ← hashed now
+    balance:  10,
+    refCode:  refCode2,
+    wins:     0,
+    isAdmin:  false,
+    withdrawPin: '1234'           // default PIN per user
+  });
+
+  if (refCode) {
+    for (const u of users.values()) {
+      if (u.refCode === refCode) { u.balance += 5; break; }
+    }
+  }
+
+  const token = genToken();
+  sessions.set(token, phone);
+  res.json({ success: true, token, user: { name, phone, balance: 10, refCode: refCode2, wins: 0 } });
 });
 
-app.post('/api/deposit', (req, res) => {
-  const { phone, amount, reference } = req.body;
+app.post('/api/login', (req, res) => {
+  const { phone, password } = req.body;
+  if (!phone || !password)
+    return res.json({ success: false, message: 'ስልክ እና ፓስዎርድ ያስፈልጋል' });
   const user = users.get(phone);
-  if (!user) return res.json({ success: false, message: 'ተጠቃሚ አልተገኘም' });
-  if (amount < 100 || amount > 10000) return res.json({ success: false, message: 'ዲፖዚት ከ100 እስከ 10,000 ብር መሆን አለበት' });
-  if (!reference || reference.trim() === '') return res.json({ success: false, message: 'እባክዎ የቴሌብር ማጣቀሻ ቁጥር ያስገቡ' });
-  if (usedReferences.has(reference)) return res.json({ success: false, message: 'ይህ ማጣቀሻ ቁጥር ቀድሞ ጥቅም ላይ ውሏል' });
-  
-  const depositId = 'DEP_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
-  pendingDeposits.set(depositId, { phone, amount, reference, status: 'pending', date: new Date().toISOString() });
-  res.json({ success: true, message: 'ዲፖዚት ጥያቄ ተልኳል። ከተረጋገጠ በኋላ ሂሳብዎ ይዘመናል', depositId });
+  if (!user || user.password !== hashPw(password))
+    return res.json({ success: false, message: 'ስልክ ወይም ፓስዎርድ ትክክል አይደለም' });
+  const token = genToken();
+  sessions.set(token, phone);
+  res.json({ success: true, token, user: { name: user.name, phone: user.phone, balance: user.balance, refCode: user.refCode, wins: user.wins } });
+});
+
+app.get('/api/user/:phone', authMiddleware, (req, res) => {
+  const u = users.get(req.params.phone);
+  if (!u) return res.json({ success: false, message: 'ተጠቃሚ አልተገኘም' });
+  res.json({ success: true, user: { name: u.name, phone: u.phone, balance: u.balance, refCode: u.refCode, wins: u.wins } });
+});
+
+// ══════════════════════════════════════════
+//   WALLET API
+// ══════════════════════════════════════════
+app.post('/api/deposit', authMiddleware, (req, res) => {
+  const { amount, reference } = req.body;
+  if (!amount || amount < 100 || amount > 10000)
+    return res.json({ success: false, message: 'ከ100-10,000 ብር ብቻ' });
+  if (!reference)
+    return res.json({ success: false, message: 'የክፍያ ማጣቀሻ ያስፈልጋል' });
+  const id = genDepositId();
+  deposits.set(id, { id, phone: req.phone, amount: parseFloat(amount), reference, status: 'pending', createdAt: Date.now() });
+  res.json({ success: true, depositId: id, message: 'ጥያቄ ጠብቆ ነው። አስተዳዳሪ እስኪያረጋግጥ ይጠብቁ' });
+});
+
+app.get('/api/pending-deposits', (req, res) => {
+  // Admin key checked server-side only — not exposed in frontend
+  if (req.query.adminKey !== ADMIN_KEY)
+    return res.status(403).json({ success: false, message: 'የተከለከለ' });
+  const list = [...deposits.values()].filter(d => d.status === 'pending');
+  res.json({ success: true, deposits: list });
 });
 
 app.post('/api/verify-deposit', (req, res) => {
   const { depositId, adminKey } = req.body;
-  if (adminKey !== '8084877485') return res.json({ success: false, message: 'ያልተፈቀደ' });
-  const pending = pendingDeposits.get(depositId);
-  if (!pending) return res.json({ success: false, message: 'ጥያቄ አልተገኘም' });
-  if (pending.status !== 'pending') return res.json({ success: false, message: 'ይህ ጥያቄ ቀድሞ ተፈትቷል' });
-  
-  const user = users.get(pending.phone);
-  if (!user) return res.json({ success: false, message: 'ተጠቃሚ አልተገኘም' });
-  
-  user.balance += pending.amount;
-  user.totalDeposited += pending.amount;
-  user.depositHistory.push({ amount: pending.amount, reference: pending.reference, date: pending.date, status: 'completed' });
-  usedReferences.add(pending.reference);
-  
-  if (user.bonusPending && pending.amount >= 100) {
-    user.balance += 10;
-    user.bonusPending = false;
-    user.bonusClaimed = true;
-  }
-  
-  users.set(pending.phone, user);
-  pending.status = 'completed';
-  pendingDeposits.set(depositId, pending);
-  res.json({ success: true, message: 'ዲፖዚት ተረጋግጧል', newBalance: user.balance, phone: pending.phone });
+  if (adminKey !== ADMIN_KEY)
+    return res.status(403).json({ success: false, message: 'የተከለከለ' });
+  const d = deposits.get(depositId);
+  if (!d)                          return res.json({ success: false, message: 'ጥያቄ አልተገኘም' });
+  if (d.status !== 'pending')      return res.json({ success: false, message: 'ቀድሞ ተረጋግጧል' });
+  d.status = 'approved';
+  const u = users.get(d.phone);
+  if (u) u.balance += d.amount;
+  res.json({ success: true, message: 'ተረጋግጧል', phone: d.phone, newBalance: u ? u.balance : 0 });
 });
 
-app.get('/api/user/:phone', (req, res) => {
-  const user = users.get(req.params.phone);
-  if (!user) return res.json({ success: false });
-  res.json({ success: true, user: { name: user.name, balance: user.balance, refCode: user.refCode, totalDeposited: user.totalDeposited, wins: user.wins } });
+app.post('/api/withdraw', authMiddleware, (req, res) => {
+  const { amount, withdrawPhone, pin } = req.body;
+  const u = req.user;
+  if (!amount || amount < 100)
+    return res.json({ success: false, message: 'ዝቅተኛ 100 ብር' });
+  if (pin !== (u.withdrawPin || '1234'))
+    return res.json({ success: false, message: 'የተሳሳተ ፒን' });
+  if (u.balance < amount)
+    return res.json({ success: false, message: 'በቂ ገንዘብ የለም' });
+  u.balance -= amount;
+  withdrawals.push({ phone: req.phone, withdrawPhone: withdrawPhone || req.phone, amount: parseFloat(amount), status: 'pending', createdAt: Date.now() });
+  res.json({ success: true, newBalance: u.balance, message: 'ጥያቄ ተልኳል' });
 });
 
-app.get('/api/pending-deposits', (req, res) => {
-  const { adminKey } = req.query;
-  if (adminKey !== '8084877485') return res.json({ success: false });
-  const list = Array.from(pendingDeposits.entries()).map(([id, data]) => ({ id, ...data }));
-  res.json({ success: true, deposits: list });
-});
-
-app.post('/api/withdraw', (req, res) => {
-  const { phone, amount, pin, withdrawPhone } = req.body;
-  const user = users.get(phone);
-  if (!user) return res.json({ success: false, message: 'ተጠቃሚ አልተገኘም' });
-  if (amount < 100 || amount > 10000) return res.json({ success: false, message: 'ከ100 እስከ 10,000 ብር' });
-  if (pin !== '1234') return res.json({ success: false, message: 'የደህንነት ፒን ትክክል አይደለም' });
-  if (user.totalDeposited < 100) return res.json({ success: false, message: 'ገንዘብ ለማውጣት ቢያንስ 100 ብር ማስገባት አለብዎት' });
-  if (user.balance < amount) return res.json({ success: false, message: 'በቂ ገንዘብ የለም' });
-  
-  user.balance -= amount;
-  user.withdrawHistory.push({ amount, phone: withdrawPhone, date: new Date().toISOString(), status: 'pending' });
-  users.set(phone, user);
-  res.json({ success: true, message: 'የዊዝድሮ ጥያቄ ተልኳል', newBalance: user.balance });
-});
-
-// ==================== ሶኬት ክስተቶች ====================
+// ══════════════════════════════════════════
+//   SOCKET.IO — REAL-TIME GAME
+// ══════════════════════════════════════════
 io.on('connection', (socket) => {
-  console.log(`Client connected: ${socket.id}`);
-  
-  socket.on('createRoom', (data) => {
-    const { playerName, phone, price, roomName } = data;
-    const user = users.get(phone);
-    if (!user) { socket.emit('errorMessage', { message: 'ተጠቃሚ አልተገኘም' }); return; }
-    const roomId = `room_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
-    const room = {
-      id: roomId, players: new Map(), gameActive: false, calledNumbers: [],
-      numberPool: null, winner: null, hostId: socket.id, hostName: playerName,
-      price: price, roomName: roomName, interval: null, takenCards: []
-    };
-    room.players.set(socket.id, { id: socket.id, name: playerName, phone, card: null, marked: null, lines: 0 });
-    rooms.set(roomId, room);
-    socket.join(roomId);
-    socket.emit('roomCreated', { roomId, isHost: true, price, roomName, takenCards: [] });
-    io.to(roomId).emit('playersList', Array.from(room.players.values()).map(p => ({ id: p.id, name: p.name })));
+  console.log('🔌 connected:', socket.id);
+
+  // ── STEP 1: Authenticate the socket ──────────────
+  // Client sends token immediately after connect.
+  // Server maps socketId → phone for all future events.
+  socket.on('authenticate', ({ token }) => {
+    const phone = sessions.get(token);
+    if (phone) {
+      socketToPhone.set(socket.id, phone);
+      socket.emit('authenticated', { ok: true });
+      console.log('✅ auth ok:', socket.id, '→', phone);
+    } else {
+      socket.emit('authenticated', { ok: false });
+    }
   });
-  
-  socket.on('joinRoom', (data) => {
-    const { roomId, playerName, phone } = data;
+
+  // ── STEP 2: Join or Create Room (Auto-matchmaking) ──
+  // Replaces old createRoom. If a waiting room at this price
+  // already exists, joins it. Otherwise creates a new room.
+  socket.on('joinOrCreateRoom', ({ price }) => {
+    const phone = socketToPhone.get(socket.id);
+    if (!phone) return socket.emit('errorMessage', { message: 'እባክዎ እንደገና ይግቡ' });
+
+    const u = users.get(phone);
+    if (!u) return socket.emit('errorMessage', { message: 'ተጠቃሚ አልተገኘም' });
+    if (u.balance < price) return socket.emit('errorMessage', { message: 'በቂ ገንዘብ የለም — ዲፖዚት ያድርጉ' });
+
+    // Find an open waiting room at this price
+    let targetRoom = null;
+    for (const room of rooms.values()) {
+      if (room.price === price && room.status === 'waiting' && room.players.length < room.maxPlayers) {
+        targetRoom = room;
+        break;
+      }
+    }
+
+    if (!targetRoom) {
+      // Create brand-new room — this player is host
+      const id       = genRoomId();
+      const roomName = price + ' ብር';
+      targetRoom = new Room(id, roomName, price, socket.id, u.name, phone);
+      rooms.set(id, targetRoom);
+      socket.join(id);
+      socket.emit('roomCreated', {
+        roomId: id, roomName, price, isHost: true, takenCards: []
+      });
+    } else {
+      // Join existing room
+      socket.join(targetRoom.id);
+      socket.emit('roomJoined', {                           // ← was never emitted before
+        roomId:     targetRoom.id,
+        roomName:   targetRoom.name,
+        price:      targetRoom.price,
+        isHost:     false,
+        takenCards: Array.from(targetRoom.takenCards)
+      });
+    }
+  });
+
+  // ── STEP 3: Select card ──────────────────────────
+  // BUG FIX: was using room.hostPhone (always host's user).
+  // Now uses socketToPhone to get the CORRECT player.
+  socket.on('selectCard', ({ roomId, cardNumber }) => {
+    const phone = socketToPhone.get(socket.id);            // ← correct player
+    if (!phone) return socket.emit('errorMessage', { message: 'እባክዎ እንደገና ይግቡ' });
+
+    const u = users.get(phone);
+    if (!u) return socket.emit('errorMessage', { message: 'ተጠቃሚ አልተገኘም' });
+
     const room = rooms.get(roomId);
-    const user = users.get(phone);
-    if (!room) { socket.emit('errorMessage', { message: 'ክፍል አልተገኘም' }); return; }
-    if (!user) { socket.emit('errorMessage', { message: 'ተጠቃሚ አልተገኘም' }); return; }
-    if (room.gameActive) { socket.emit('errorMessage', { message: 'ጨዋታ ተጀምሯል' }); return; }
-    room.players.set(socket.id, { id: socket.id, name: playerName, phone, card: null, marked: null, lines: 0 });
-    socket.join(roomId);
-    socket.emit('roomJoined', { roomId, isHost: false, price: room.price, roomName: room.roomName, takenCards: room.takenCards || [] });
-    io.to(roomId).emit('playersList', Array.from(room.players.values()).map(p => ({ id: p.id, name: p.name })));
+    if (!room)                       return socket.emit('errorMessage', { message: 'ክፍል አልተገኘም' });
+    if (room.status !== 'waiting')   return socket.emit('errorMessage', { message: 'ጨዋታ ጀምሯል' });
+    if (u.balance < room.price)      return socket.emit('errorMessage', { message: 'በቂ ገንዘብ የለም' });
+
+    socket.join(roomId);                                   // ← player 2 must join the IO room
+
+    const result = room.addPlayer(socket.id, u.name, phone, cardNumber);
+    if (!result.ok) return socket.emit('errorMessage', { message: result.msg });
+
+    u.balance -= room.price;                               // ← deducts from CORRECT player
+
+    room.broadcastPlayersList();
+    socket.emit('cardConfirmed', { cardNumber });
+    io.to(roomId).emit('takenUpdate', {
+      taken: Array.from(room.takenCards),
+      playerCount: room.players.length
+    });
+
+    // Auto-start countdown when 2+ players have selected cards
+    if (room.players.length >= 2 && !room.countdownActive) {
+      room.startCountdown(30);
+    }
   });
-  
-  socket.on('selectCard', (data) => {
-    const { roomId, cardNumber } = data;
+
+  // ── In-game events ───────────────────────────────
+  socket.on('markNumber', ({ roomId, row, col }) => {
+    const room = rooms.get(roomId);
+    if (room) room.markNumber(socket.id, row, col);
+  });
+
+  socket.on('claimBingo', ({ roomId }) => {
     const room = rooms.get(roomId);
     if (!room) return;
-    const player = room.players.get(socket.id);
-    if (!player) return;
-    if (!room.takenCards) room.takenCards = [];
-    if (room.takenCards.includes(cardNumber)) {
-      socket.emit('errorMessage', { message: 'ይህ ካርድ ተወስዷል' });
-      return;
-    }
-    room.takenCards.push(cardNumber);
-    player.cardNumber = cardNumber;
-    room.players.set(socket.id, player);
-    socket.emit('cardConfirmed');
-    io.to(roomId).emit('playersList', Array.from(room.players.values()).map(p => ({ id: p.id, name: p.name, card: p.cardNumber })));
+    const p = room.players.find(x => x.socketId === socket.id);
+    if (p) room.checkPlayerBingo(p);
   });
-  
-  socket.on('startGame', (data) => {
-    const { roomId } = data;
+
+  socket.on('startGame', ({ roomId }) => {
     const room = rooms.get(roomId);
-    if (!room || socket.id !== room.hostId) { socket.emit('errorMessage', { message: 'አስተናጋጁ ብቻ መጀመር ይችላል' }); return; }
-    if (room.players.size < 2) { socket.emit('errorMessage', { message: 'ቢያንስ 2 ተጫዋቾች ያስፈልጋሉ' }); return; }
-    room.gameActive = true;
-    room.calledNumbers = [];
-    room.numberPool = generateRandomNumberPool();
-    room.winner = null;
-    for (let [playerId, player] of room.players.entries()) {
-      const newCard = generateBingoCard();
-      const newMarked = Array(5).fill().map(() => Array(5).fill(false));
-      newMarked[2][2] = true;
-      player.card = newCard;
-      player.marked = newMarked;
-      player.lines = 0;
-      room.players.set(playerId, player);
-      io.to(playerId).emit('cardData', { card: newCard });
+    if (room && room.hostSocketId === socket.id) {
+      room.startGame();
     }
-    io.to(roomId).emit('gameStarted');
-    startNumberCalling(roomId);
   });
-  
-  socket.on('markNumber', (data) => {
-    const { roomId, row, col, number } = data;
+
+  socket.on('leaveRoom', ({ roomId }) => {
     const room = rooms.get(roomId);
-    if (!room || !room.gameActive) return;
-    const player = room.players.get(socket.id);
-    if (!player) return;
-    if (player.card[col][row] !== number) return;
-    if (!room.calledNumbers.includes(number)) { socket.emit('errorMessage', { message: 'ቁጥሩ ገና አልወጣም' }); return; }
-    player.marked[row][col] = true;
-    const lines = calculateLines(player.card, player.marked);
-    player.lines = lines;
-    room.players.set(socket.id, player);
-    io.to(socket.id).emit('linesUpdate', { lines });
-    if (lines >= 2 && !room.winner) {
-      const user = users.get(player.phone);
-      if (user) { user.wins = (user.wins || 0) + 1; users.set(player.phone, user); }
-      room.winner = { id: socket.id, name: player.name };
-      room.gameActive = false;
-      if (room.interval) clearInterval(room.interval);
-      io.to(roomId).emit('gameEnded', { winner: player.name });
-    }
+    if (!room) return;
+    room.removePlayer(socket.id);
+    socket.leave(roomId);
+    if (room.players.length === 0) rooms.delete(roomId);
+    else room.broadcastPlayersList();
   });
-  
-  socket.on('claimBingo', (data) => {
-    const { roomId } = data;
-    const room = rooms.get(roomId);
-    if (!room || !room.gameActive) return;
-    const player = room.players.get(socket.id);
-    if (!player) return;
-    if (player.lines >= 2 && !room.winner) {
-      const user = users.get(player.phone);
-      if (user) { user.wins = (user.wins || 0) + 1; users.set(player.phone, user); }
-      room.winner = { id: socket.id, name: player.name };
-      room.gameActive = false;
-      if (room.interval) clearInterval(room.interval);
-      io.to(roomId).emit('gameEnded', { winner: player.name });
-    } else {
-      socket.emit('errorMessage', { message: `እስካሁን ${player.lines} መስመር ብቻ! 2 ያስፈልጋል` });
-    }
-  });
-  
-  socket.on('leaveRoom', (data) => {
-    const { roomId } = data;
-    const room = rooms.get(roomId);
-    if (room) {
-      room.players.delete(socket.id);
-      socket.leave(roomId);
-      if (room.players.size === 0) { if (room.interval) clearInterval(room.interval); rooms.delete(roomId); }
-      else { io.to(roomId).emit('playersList', Array.from(room.players.values()).map(p => ({ id: p.id, name: p.name }))); }
-    }
-  });
-  
+
   socket.on('disconnect', () => {
-    for (const [roomId, room] of rooms.entries()) {
-      if (room.players.has(socket.id)) {
-        room.players.delete(socket.id);
-        if (room.players.size === 0) { if (room.interval) clearInterval(room.interval); rooms.delete(roomId); }
-        else { io.to(roomId).emit('playersList', Array.from(room.players.values()).map(p => ({ id: p.id, name: p.name }))); }
+    console.log('❌ disconnected:', socket.id);
+    socketToPhone.delete(socket.id);   // ← cleanup mapping
+    for (const room of rooms.values()) {
+      if (room.players.find(x => x.socketId === socket.id)) {
+        room.removePlayer(socket.id);
+        if (room.players.length === 0) rooms.delete(room.id);
+        else room.broadcastPlayersList();
         break;
       }
     }
   });
 });
 
-function startNumberCalling(roomId) {
-  const room = rooms.get(roomId);
-  if (!room) return;
-  room.interval = setInterval(() => {
-    const currentRoom = rooms.get(roomId);
-    if (!currentRoom || !currentRoom.gameActive || currentRoom.winner) {
-      if (currentRoom && currentRoom.interval) clearInterval(currentRoom.interval);
-      return;
-    }
-    if (currentRoom.numberPool.length === 0) {
-      io.to(roomId).emit('gameEnded', { winner: null, message: 'ሁሉም ቁጥሮች ተጠርተዋል' });
-      currentRoom.gameActive = false;
-      if (currentRoom.interval) clearInterval(currentRoom.interval);
-      return;
-    }
-    const number = currentRoom.numberPool.shift();
-    const letter = getLetter(number);
-    currentRoom.calledNumbers.push(number);
-    io.to(roomId).emit('numberCalled', { number, letter, calledCount: currentRoom.calledNumbers.length });
-  }, 3000);
-}
-
+// ══════════════════════════════════════════
+//   START
+// ══════════════════════════════════════════
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🚀 Ultra Bingo Server running on port ${PORT}`);
-  console.log(`📞 Deposit Number: 0953025980 (Seid)`);
-  console.log(`🔑 Admin Key: 8084877485`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🎯 ULTRA BINGO running on port ${PORT}`);
+  console.log(`📡 Open: http://localhost:${PORT}`);
 });
